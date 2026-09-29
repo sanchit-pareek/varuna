@@ -24,7 +24,7 @@ import urllib.request
 from collections import defaultdict
 from pathlib import PurePosixPath, PureWindowsPath
 
-UA = {"User-Agent": "TideTrace/1.0 (SIH26143 research)"}
+UA = {"User-Agent": "Varuna/1.0 (SIH26143 research)"}
 
 
 class HttpRangeFile(io.RawIOBase):

@@ -1,4 +1,4 @@
-"""TideTrace FastAPI application.
+"""Varuna FastAPI application.
 
     python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
@@ -26,7 +26,7 @@ from . import config
 from .api import ais as ais_routes, detect as detect_routes, drift as drift_routes
 from .api import health as health_routes, pipeline as pipeline_routes, report as report_routes
 
-log = logging.getLogger("tidetrace")
+log = logging.getLogger("varuna")
 
 
 @asynccontextmanager

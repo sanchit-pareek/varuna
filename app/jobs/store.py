@@ -52,7 +52,7 @@ def prune(keep: int = None, keep_overlays: int = None) -> Dict[str, int]:
     they are the audit trail and they are small; the PNGs are regenerable by
     re-running the job.
 
-    Set TIDETRACE_KEEP_JOBS to 0 to keep everything.
+    Set VARUNA_KEEP_JOBS to 0 to keep everything.
     """
     keep = int(config.KEEP_JOBS if keep is None else keep)
     keep_overlays = int(config.KEEP_JOB_OVERLAYS if keep_overlays is None else keep_overlays)

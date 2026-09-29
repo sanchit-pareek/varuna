@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Sequence, Tuple
 
 BASE = ("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/"
         "master/geojson/")
-UA = {"User-Agent": "tidetrace/1.5 (SIH26143 offline console)"}
+UA = {"User-Agent": "varuna/1.5 (SIH26143 offline console)"}
 OUT = Path("data/land")
 LICENSE = ("Natural Earth 1:110m and 1:50m Physical Vectors, land. "
            "Public domain, no attribution required.")

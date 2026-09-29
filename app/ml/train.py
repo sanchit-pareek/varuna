@@ -3,7 +3,7 @@
 Kaggle is the factory, the laptop is the product. Nothing in the served
 application imports this module.
 
-    python -m app.ml.train --tiles /kaggle/input/tidetrace-tiles --epochs 40
+    python -m app.ml.train --tiles /kaggle/input/varuna-tiles --epochs 40
 
 Frozen recipe from the spec:
     UnetPlusPlus or Unet, encoder timm-efficientnet-b0 or resnet34
@@ -457,7 +457,7 @@ def main(argv=None) -> int:
     ap.add_argument("--push-to-hub", action="store_true",
                     help="upload the checkpoint every time validation IoU improves")
     ap.add_argument("--hub-repo", default=None,
-                    help="model repo id, default N-1ACE/tidetrace-oil-unet")
+                    help="model repo id, default N-1ACE/varuna-oil-unet")
     ap.add_argument("--resume", action="store_true",
                     help="continue from the last optimiser state, local or from the Hub")
     ap.add_argument("--time-budget", type=float, default=None,

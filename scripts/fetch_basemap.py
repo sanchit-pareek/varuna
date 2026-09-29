@@ -41,7 +41,7 @@ sys.path.insert(0, str(ROOT))
 
 from app import config, scenes as scenes_mod   # noqa: E402
 
-UA = {"User-Agent": "TideTrace/1.0 (SIH26143 academic project; one-time offline cache)"}
+UA = {"User-Agent": "Varuna/1.0 (SIH26143 academic project; one-time offline cache)"}
 
 LAYERS: Dict[str, Dict] = {
     "satellite": {

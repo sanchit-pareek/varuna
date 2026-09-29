@@ -9,7 +9,7 @@ with a known ground truth so assertions can be exact.
 
 Everything it writes is marked `selftest: true` in the scene index, and
 `app/scenes.py` hides such scenes from `/api/scenes` unless the operator sets
-TIDETRACE_ALLOW_SELFTEST_SCENES=1. Do not show one to a judge.
+VARUNA_ALLOW_SELFTEST_SCENES=1. Do not show one to a judge.
 
 The raster is a physically shaped stand in, not a pretty picture: Rayleigh
 distributed sea clutter at a chosen mean backscatter, a darker elongated slick

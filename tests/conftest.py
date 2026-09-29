@@ -20,10 +20,10 @@ def _sandbox(tmp_path_factory):
     Tests must never touch the demo store: a test that quietly appends to
     data/ais/ais.sqlite would make the judged demo non reproducible.
     """
-    data = tmp_path_factory.mktemp("tidetrace_data")
-    os.environ["TIDETRACE_DATA"] = str(data)
-    os.environ["TIDETRACE_MODELS"] = str(tmp_path_factory.mktemp("tidetrace_models"))
-    os.environ["TIDETRACE_ALLOW_SELFTEST_SCENES"] = "1"
+    data = tmp_path_factory.mktemp("varuna_data")
+    os.environ["VARUNA_DATA"] = str(data)
+    os.environ["VARUNA_MODELS"] = str(tmp_path_factory.mktemp("varuna_models"))
+    os.environ["VARUNA_ALLOW_SELFTEST_SCENES"] = "1"
     for name in list(sys.modules):
         if name == "app" or name.startswith("app."):
             del sys.modules[name]

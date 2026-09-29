@@ -12,7 +12,7 @@ compressed, read this file to recover history.
 **Source of truth:** `p2.docx` (SIH26143 spec sheet). Extracted to plain text and
 read in full before any code was written. Key facts locked in:
 
-- **Project:** TideTrace. UI title "NTRO Oil Spill Attribution Console".
+- **Project:** Varuna. UI title "NTRO Oil Spill Attribution Console".
 - **SIH ID:** SIH26143. Org: NTRO. Category: Software. Theme: Space Technology.
 - **Deadline:** 20 September 2026.
 - **Pitch:** Offline SAR oil-slick detector that hindcasts/forecasts drift with
@@ -40,7 +40,7 @@ read in full before any code was written. Key facts locked in:
 - Python 3.12.10, bare (no numpy/fastapi/torch/rasterio present at start).
 - Network available at build time, so real metocean can be cached now and the
   runtime can then stay in airplane mode, exactly as the spec requires.
-- Virtualenv created at `C:\Users\USER\tidetrace-venv` (kept on a short path to
+- Virtualenv created at `C:\Users\USER\varuna-venv` (kept on a short path to
   avoid Windows MAX_PATH problems with deep site-packages trees).
 - torch and segmentation_models_pytorch are NOT installed here. That is by
   design and allowed: the spec requires the pipeline to run end to end with the
@@ -70,8 +70,8 @@ mask, then U-Net inference path, then UI layers, then training notebook.
 whose path is over 200 characters. Windows long paths are disabled on this
 machine (`LongPathsEnabled = 0`, MAX_PATH 260), and files were already failing
 to write inside `app/static/vendor/leaflet/images`. The whole project was moved
-to `C:\Users\USER\tidetrace` and the session directory moved with it. The
-virtualenv lives outside the tree at `C:\Users\USER\tidetrace-venv`, also to
+to `C:\Users\USER\varuna` and the session directory moved with it. The
+virtualenv lives outside the tree at `C:\Users\USER\varuna-venv`, also to
 keep paths short. Scene paths in `data/sar/scenes.json` are now stored relative
 to `data/`, so the repository can be moved or zipped without going stale.
 
@@ -150,7 +150,7 @@ self test scene this took IoU_oil from 0.069 to 0.690.
   its least innocent ship.
 - Synthetic SAR exists only in `scripts/make_selftest_scene.py`, is marked
   `selftest: true`, and is hidden from `/api/scenes` unless
-  `TIDETRACE_ALLOW_SELFTEST_SCENES=1`.
+  `VARUNA_ALLOW_SELFTEST_SCENES=1`.
 - OpenDrift, CMEMS, Open-Meteo and Planetary Computer are never imported at
   request time. Network access lives entirely in `scripts/`.
 
@@ -419,18 +419,18 @@ then `HF_TOKEN`, then the hub cache. Never a file in the repo.
 rather than hand-edited JSON, and `scripts/kaggle_push.py` pushes and watches
 them. Both notebooks are live:
 
-- `nalin1ahuja/tidetrace-prepare-data`, CPU. Downloads a Zenodo archive with
+- `nalin1ahuja/varuna-prepare-data`, CPU. Downloads a Zenodo archive with
   HTTP range resume, then **streams**: extract a batch of chips, tile them,
   delete them, repeat. Peak disk stays a few GB no matter how large the archive,
   which is the only way a 40 GB part fits in a Kaggle session at all.
-- `nalin1ahuja/tidetrace-train`, GPU P100.
+- `nalin1ahuja/varuna-train`, GPU P100.
 
 Both read `HF_TOKEN` from Kaggle Secrets. That has to be set once in the Kaggle
 web editor under Add-ons > Secrets; it cannot be pushed from the CLI, which is
 the correct arrangement.
 
 Repos created, with real cards written:
-`N-1ACE/tidetrace-sar-tiles` (dataset) and `N-1ACE/tidetrace-oil-unet` (model).
+`N-1ACE/varuna-sar-tiles` (dataset) and `N-1ACE/varuna-oil-unet` (model).
 The source snapshot is already pushed to `code/` in the model repo.
 
 **Checkpointing that survives the session limit.** Kaggle kills a session and
@@ -443,8 +443,8 @@ optimiser state lives in a separate `last_state.pt` that only a resuming trainer
 reads; a Hub failure prints a warning and never kills the run.
 
 **A slug gotcha worth recording.** Kaggle derives the kernel slug from the
-*title*, not the id. "TideTrace: Zenodo to HF tiles" silently created a second
-kernel at `tidetrace-zenodo-to-hf-tiles`. Titles now slugify back to their ids,
+*title*, not the id. "Varuna: Zenodo to HF tiles" silently created a second
+kernel at `varuna-zenodo-to-hf-tiles`. Titles now slugify back to their ids,
 and the stray kernel was deleted.
 
 **The offline boundary is now enforced, not promised.** `app/hub.py` lives
@@ -506,7 +506,7 @@ blocker, the architecture was changed so no credential is needed on Kaggle at
 all:
 
 1. Both HF repos were made public, so the notebooks download code anonymously.
-2. The training kernel declares `kernel_sources: ["nalin1ahuja/tidetrace-prepare-data"]`,
+2. The training kernel declares `kernel_sources: ["nalin1ahuja/varuna-prepare-data"]`,
    so the tile set mounts at `/kaggle/input` straight from the data kernel's
    output. Tiles never cross the public internet twice and never touch a laptop.
 3. Results leave through Kaggle's own kernel output, pulled with
@@ -569,9 +569,9 @@ rather than drifting between training and inference.
 torch and segmentation_models_pytorch are now installed locally (CPU only), so
 the U-Net path is exercisable on this machine.
 
-**State at the end of this entry.** `tidetrace-prepare-data` version 3 is
+**State at the end of this entry.** `varuna-prepare-data` version 3 is
 RUNNING on Kaggle: downloading 9.86 GB from Zenodo, then streaming extract,
-tile, delete. `tidetrace-train` is pushed and chained to it. Everything else is
+tile, delete. `varuna-train` is pushed and chained to it. Everything else is
 built, linted and tested.
 
 ---
@@ -622,14 +622,14 @@ readable, no horizontal overflow, no console errors.
 
 48 tests pass, `ruff check` clean.
 
-`tidetrace-prepare-data` is still RUNNING on Kaggle: 9.86 GB from Zenodo, then
-streaming extract, tile, delete. `tidetrace-train` is chained and waiting.
+`varuna-prepare-data` is still RUNNING on Kaggle: 9.86 GB from Zenodo, then
+streaming extract, tile, delete. `varuna-train` is chained and waiting.
 
 ---
 
 ## Entry 009 - 2026-09-03 - The data kernel finished green and delivered nothing
 
-**`tidetrace-prepare-data` reported "complete" with 0 tiles.** It downloaded all
+**`varuna-prepare-data` reported "complete" with 0 tiles.** It downloaded all
 9.86 GB, extracted every chip, and wrote an empty tile set without raising. That
 is the worst failure mode there is: the next stage inherits the emptiness and
 blames itself. The training kernel then died on
@@ -1412,7 +1412,7 @@ Look-alikes remain 0 under the U-Net, as documented since entry 011: the
 archive's class-1 masks are empty, so the head is unsupervised. The dB baseline
 still separates them and the UI still draws them.
 
-Checkpoint pushed to N-1ACE/tidetrace-oil-unet. 89 tests, ruff clean.
+Checkpoint pushed to N-1ACE/varuna-oil-unet. 89 tests, ruff clean.
 
 ### What this cost, and the lesson
 
@@ -1694,10 +1694,10 @@ to be using, while I reported results from a different one.
 I had seen those processes hours earlier, decided they might be the user's, and
 left them running. "Might be theirs" was the wrong call for a server that
 answers on the project's own name with a detector that cannot find water. All
-TideTrace servers are now stopped and there is one current build.
+Varuna servers are now stopped and there is one current build.
 
 Worth noting for future sessions: port 8000 is taken on this machine by an
-unrelated project of the user's, `dell-ai-parts-inspector`. TideTrace was moved
+unrelated project of the user's, `dell-ai-parts-inspector`. Varuna was moved
 to 8100 rather than reclaiming it.
 
 ### The second one was real, and there were two bugs behind it

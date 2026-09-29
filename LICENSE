@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 TideTrace contributors
+Copyright (c) 2026 Varuna contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@ SOFTWARE.
 
 ---
 
-This licence covers the TideTrace source code only. Data obtained through the
+This licence covers the Varuna source code only. Data obtained through the
 scripts in `scripts/` carries its own licence, listed in README.md:
 
   Zenodo Sentinel-1 SAR oil spill dataset      CC BY 4.0

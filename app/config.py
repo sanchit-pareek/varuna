@@ -1,4 +1,4 @@
-"""Frozen configuration for TideTrace (SIH26143).
+"""Frozen configuration for Varuna (SIH26143).
 
 Every constant in the FROZEN block comes straight from the spec sheet. Change
 them only through environment variables so that the shipped defaults stay
@@ -14,13 +14,13 @@ from pathlib import Path
 # ----------------------------------------------------------------------------
 APP_DIR = Path(__file__).resolve().parent
 ROOT_DIR = APP_DIR.parent
-DATA_DIR = Path(os.environ.get("TIDETRACE_DATA", ROOT_DIR / "data"))
+DATA_DIR = Path(os.environ.get("VARUNA_DATA", ROOT_DIR / "data"))
 SAR_DIR = DATA_DIR / "sar"
 AIS_DIR = DATA_DIR / "ais"
 METOCEAN_DIR = DATA_DIR / "metocean"
 JOBS_DIR = DATA_DIR / "jobs"
 CACHE_DIR = DATA_DIR / "cache"
-MODELS_DIR = Path(os.environ.get("TIDETRACE_MODELS", ROOT_DIR / "models"))
+MODELS_DIR = Path(os.environ.get("VARUNA_MODELS", ROOT_DIR / "models"))
 STATIC_DIR = APP_DIR / "static"
 
 AIS_SQLITE = AIS_DIR / "ais.sqlite"
@@ -55,42 +55,42 @@ def _b(name: str, default: bool) -> bool:
 # ----------------------------------------------------------------------------
 # FROZEN CONSTANTS (spec: CONFIG DEFAULTS)
 # ----------------------------------------------------------------------------
-ALPHA_WIND = _f("TIDETRACE_ALPHA_WIND", 0.03)      # 3 percent of wind, Stokes off
-DEFLECTION_DEG = _f("TIDETRACE_DEFLECTION_DEG", 15.0)  # right of wind in N hemisphere
-ENSEMBLE_N = _i("TIDETRACE_ENSEMBLE_N", 50)
-DT_SECONDS = _i("TIDETRACE_DT_SECONDS", 3600)
-HINDCAST_H = _i("TIDETRACE_HINDCAST_H", 48)
-FORECAST_H = _i("TIDETRACE_FORECAST_H", 36)
-SEARCH_RADIUS_KM = _f("TIDETRACE_SEARCH_RADIUS_KM", 10.0)
-ORIGIN_WINDOW_H = _f("TIDETRACE_ORIGIN_WINDOW_H", 3.0)
-OIL_DB_THRESHOLD = _f("TIDETRACE_OIL_DB_THRESHOLD", -22.0)
-TILE = _i("TIDETRACE_TILE", 512)
-TILE_OVERLAP = _i("TIDETRACE_TILE_OVERLAP", 64)
+ALPHA_WIND = _f("VARUNA_ALPHA_WIND", 0.03)      # 3 percent of wind, Stokes off
+DEFLECTION_DEG = _f("VARUNA_DEFLECTION_DEG", 15.0)  # right of wind in N hemisphere
+ENSEMBLE_N = _i("VARUNA_ENSEMBLE_N", 50)
+DT_SECONDS = _i("VARUNA_DT_SECONDS", 3600)
+HINDCAST_H = _i("VARUNA_HINDCAST_H", 48)
+FORECAST_H = _i("VARUNA_FORECAST_H", 36)
+SEARCH_RADIUS_KM = _f("VARUNA_SEARCH_RADIUS_KM", 10.0)
+ORIGIN_WINDOW_H = _f("VARUNA_ORIGIN_WINDOW_H", 3.0)
+OIL_DB_THRESHOLD = _f("VARUNA_OIL_DB_THRESHOLD", -22.0)
+TILE = _i("VARUNA_TILE", 512)
+TILE_OVERLAP = _i("VARUNA_TILE_OVERLAP", 64)
 
 # Scoring weights. prox and time together carry half the model, which is what
 # "spatio-temporal correlation" in the problem statement actually asks for.
 # Behaviour stays the largest single term because it is the only one that
 # describes conduct rather than coincidence.
 WEIGHTS = {
-    "prox": _f("TIDETRACE_W_PROX", 0.30),
-    "time": _f("TIDETRACE_W_TIME", 0.20),
-    "beh": _f("TIDETRACE_W_BEH", 0.25),
-    "type": _f("TIDETRACE_W_TYPE", 0.15),
-    "traj": _f("TIDETRACE_W_TRAJ", 0.10),
+    "prox": _f("VARUNA_W_PROX", 0.30),
+    "time": _f("VARUNA_W_TIME", 0.20),
+    "beh": _f("VARUNA_W_BEH", 0.25),
+    "type": _f("VARUNA_W_TYPE", 0.15),
+    "traj": _f("VARUNA_W_TRAJ", 0.10),
 }
 
-OFFLINE = _b("TIDETRACE_OFFLINE", True)
-OPEN_METEO_LIVE = _b("TIDETRACE_OPEN_METEO_LIVE", False)
+OFFLINE = _b("VARUNA_OFFLINE", True)
+OPEN_METEO_LIVE = _b("VARUNA_OPEN_METEO_LIVE", False)
 
 # Ensemble noise, spec: "current noise 0.1 m/s, wind noise 1 m/s"
-CURRENT_NOISE_MS = _f("TIDETRACE_CURRENT_NOISE", 0.1)
-WIND_NOISE_MS = _f("TIDETRACE_WIND_NOISE", 1.0)
+CURRENT_NOISE_MS = _f("VARUNA_CURRENT_NOISE", 0.1)
+WIND_NOISE_MS = _f("VARUNA_WIND_NOISE", 1.0)
 
 # Origin rule, spec: first time ensemble spread radius exceeds 8 km, clipped
-SPREAD_TRIGGER_KM = _f("TIDETRACE_SPREAD_TRIGGER_KM", 8.0)
-ORIGIN_H_MIN = _f("TIDETRACE_ORIGIN_H_MIN", 6.0)
-ORIGIN_H_MAX = _f("TIDETRACE_ORIGIN_H_MAX", 48.0)
-ORIGIN_BUFFER_KM = _f("TIDETRACE_ORIGIN_BUFFER_KM", 2.0)
+SPREAD_TRIGGER_KM = _f("VARUNA_SPREAD_TRIGGER_KM", 8.0)
+ORIGIN_H_MIN = _f("VARUNA_ORIGIN_H_MIN", 6.0)
+ORIGIN_H_MAX = _f("VARUNA_ORIGIN_H_MAX", 48.0)
+ORIGIN_BUFFER_KM = _f("VARUNA_ORIGIN_BUFFER_KM", 2.0)
 
 # Radiometric operating point. Open water backscatter moves several dB with
 # wind, incidence angle and product calibration -- the shipped scenes span
@@ -107,48 +107,48 @@ ORIGIN_BUFFER_KM = _f("TIDETRACE_ORIGIN_BUFFER_KM", 2.0)
 # scene until its slicks stop reading as slicks: on the Gulf chip it took a
 # correct 29-polygon detection to zero. Enable it only with a checkpoint whose
 # metadata carries a real `sea_level_db`.
-RADIOMETRIC_ALIGN = _b("TIDETRACE_RADIOMETRIC_ALIGN", False)
-RADIOMETRIC_MAX_SHIFT_DB = _f("TIDETRACE_RADIOMETRIC_MAX_SHIFT_DB", 6.0)
-RADIOMETRIC_WARN_DB = _f("TIDETRACE_RADIOMETRIC_WARN_DB", 4.0)
+RADIOMETRIC_ALIGN = _b("VARUNA_RADIOMETRIC_ALIGN", False)
+RADIOMETRIC_MAX_SHIFT_DB = _f("VARUNA_RADIOMETRIC_MAX_SHIFT_DB", 6.0)
+RADIOMETRIC_WARN_DB = _f("VARUNA_RADIOMETRIC_WARN_DB", 4.0)
 
 # A scene whose co-pol dynamic range is below this has no structure to detect:
 # uniform wind-roughened water. Reported so that "no oil" reads as a measured
 # finding rather than a detector that fell over.
-CLEAN_WATER_SPAN_DB = _f("TIDETRACE_CLEAN_WATER_SPAN_DB", 3.0)
+CLEAN_WATER_SPAN_DB = _f("VARUNA_CLEAN_WATER_SPAN_DB", 3.0)
 
 # Baseline thresholding. Oil is a contrast phenomenon: it sits some dB below
 # whatever the local sea happens to be. OIL_DB_THRESHOLD is the published
 # absolute reference and is reported alongside, but the relative cut is what
 # actually governs, because a fixed absolute cut finds the whole ocean on a
 # calm dark scene and nothing at all on a bright one.
-BASELINE_RELATIVE_ONLY = _b("TIDETRACE_BASELINE_RELATIVE_ONLY", True)
+BASELINE_RELATIVE_ONLY = _b("VARUNA_BASELINE_RELATIVE_ONLY", True)
 
 # Detection post-processing
-MIN_OIL_AREA_KM2 = _f("TIDETRACE_MIN_OIL_AREA_KM2", 0.05)
-MIN_OIL_PIXELS = _i("TIDETRACE_MIN_OIL_PIXELS", 500)
+MIN_OIL_AREA_KM2 = _f("VARUNA_MIN_OIL_AREA_KM2", 0.05)
+MIN_OIL_PIXELS = _i("VARUNA_MIN_OIL_PIXELS", 500)
 # Look-alikes are reported, not attributed, so a larger floor keeps the map
 # readable without changing anything the pipeline actually acts on.
-MIN_LOOKALIKE_AREA_KM2 = _f("TIDETRACE_MIN_LOOKALIKE_AREA_KM2", 0.12)
-MAX_LOOKALIKE_POLYGONS = _i("TIDETRACE_MAX_LOOKALIKE_POLYGONS", 30)
+MIN_LOOKALIKE_AREA_KM2 = _f("VARUNA_MIN_LOOKALIKE_AREA_KM2", 0.12)
+MAX_LOOKALIKE_POLYGONS = _i("VARUNA_MAX_LOOKALIKE_POLYGONS", 30)
 
 # Run history retention. A job document is the audit trail and is small; the
 # overlay PNGs are a megabyte a run and are regenerable. Without a bound the
 # demo machine fills its disk, which is how this constant came to exist.
-# Set TIDETRACE_KEEP_JOBS=0 to disable pruning entirely.
-KEEP_JOBS = _i("TIDETRACE_KEEP_JOBS", 200)
-KEEP_JOB_OVERLAYS = _i("TIDETRACE_KEEP_JOB_OVERLAYS", 20)
+# Set VARUNA_KEEP_JOBS=0 to disable pruning entirely.
+KEEP_JOBS = _i("VARUNA_KEEP_JOBS", 200)
+KEEP_JOB_OVERLAYS = _i("VARUNA_KEEP_JOB_OVERLAYS", 20)
 
 # Deterministic behaviour for a judged demo
-RANDOM_SEED = _i("TIDETRACE_SEED", 20260920)
+RANDOM_SEED = _i("VARUNA_SEED", 20260920)
 
 # Demo flags surfaced in the UI so nothing is hidden from a judge
-DEMO_METOCEAN = _b("TIDETRACE_DEMO_METOCEAN", False)
-ALLOW_SELFTEST_SCENES = _b("TIDETRACE_ALLOW_SELFTEST_SCENES", False)
+DEMO_METOCEAN = _b("VARUNA_DEMO_METOCEAN", False)
+ALLOW_SELFTEST_SCENES = _b("VARUNA_ALLOW_SELFTEST_SCENES", False)
 
 CLASS_NAMES = {0: "sea", 1: "look_alike", 2: "mineral_oil"}
 
 UI_TITLE = "NTRO Oil Spill Attribution Console"
-PROJECT_CODENAME = "TideTrace"
+PROJECT_CODENAME = "Varuna"
 SIH_ID = "SIH26143"
 VERSION = "1.5.0"
 

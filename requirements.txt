@@ -1,4 +1,4 @@
-# TideTrace runtime. Python 3.11 or newer.
+# Varuna runtime. Python 3.11 or newer.
 #
 # Everything in the REQUIRED block is genuinely required. Everything in the
 # OPTIONAL blocks is genuinely optional: the app starts, serves the console and

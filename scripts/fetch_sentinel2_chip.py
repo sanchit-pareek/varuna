@@ -48,7 +48,7 @@ COLLECTION = "sentinel-2-l2a"
 LICENSE = ("Contains modified Copernicus Sentinel data. Sentinel-2 L2A hosted by "
            "Microsoft Planetary Computer, CC BY 4.0.")
 
-UA = {"User-Agent": "TideTrace/1.0 (SIH26143 academic project)"}
+UA = {"User-Agent": "Varuna/1.0 (SIH26143 academic project)"}
 
 # Scene Classification Layer values that mean "you are not looking at the sea".
 # 3 cloud shadow, 8 cloud medium probability, 9 cloud high, 10 thin cirrus.

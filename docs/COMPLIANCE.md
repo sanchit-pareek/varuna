@@ -60,7 +60,7 @@ Read this next to `README.md` (limitations) and `PROJECT_JOURNAL.md` (history).
 | No LangChain, VLM, SAM2, vector DB, auth, React | Yes | `requirements.txt` and `app/static/` contain none of them. |
 | Frozen stack | Yes | Python 3.11+, FastAPI, uvicorn, vanilla HTML plus Leaflet 1.9 from `app/static/vendor`. |
 | Optional libraries are truly optional | Yes | rasterio, scipy, pyproj, shapely, Pillow, torch, smp and reportlab all have working fallbacks. `test_builtin_tiff_reader_matches_rasterio` checks the escape hatch agrees with the real thing. |
-| Deterministic runs | Yes | `test_run_is_reproducible` compares two runs field by field. Seed is `TIDETRACE_SEED`, default 20260920. |
+| Deterministic runs | Yes | `test_run_is_reproducible` compares two runs field by field. Seed is `VARUNA_SEED`, default 20260920. |
 | No em dashes in UI copy | Yes | `grep` over `app/static/` returns none. |
 | Dataset licences cited | Yes | README data table. |
 | Demo works without CUDA | Yes | The whole system was built and verified on a CPU-only machine with no torch installed. |

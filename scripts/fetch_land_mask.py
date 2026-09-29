@@ -44,7 +44,7 @@ LAKES = ("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/"
 LICENSE = ("Natural Earth 1:10m Physical Vectors, land and lakes. Public "
            "domain, made with Natural Earth.")
 
-UA = {"User-Agent": "TideTrace/1.0 (SIH26143 academic project)"}
+UA = {"User-Agent": "Varuna/1.0 (SIH26143 academic project)"}
 
 Point = Tuple[float, float]
 

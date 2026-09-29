@@ -1,4 +1,4 @@
-# TideTrace architecture
+# Varuna architecture
 
 Two pictures. The first is about trust, the second is about mechanism.
 
@@ -61,9 +61,9 @@ Kaggle is the factory. The laptop is the product.
 ```
   laptop                Hugging Face                    Kaggle
   ------                ------------                    ------
-  hf_sync.py push-code ---> tidetrace-oil-unet/code/ ---> notebook imports app/
+  hf_sync.py push-code ---> varuna-oil-unet/code/ ---> notebook imports app/
                                                              |
-                            tidetrace-sar-tiles  <-----------+  prepare-data:
+                            varuna-sar-tiles  <-----------+  prepare-data:
                                     |                           Zenodo -> tiles
                                     |                           streamed so disk
                                     v                           never holds the
@@ -72,7 +72,7 @@ Kaggle is the factory. The laptop is the product.
                                     v
                             train, push on every IoU improvement
                                     |
-                            tidetrace-oil-unet/
+                            varuna-oil-unet/
                               oil_unet_best.pt      (< 80 MB, the demo artefact)
                               last_state.pt         (optimiser state, resume only)
                               training_state.json   (epoch and metrics)

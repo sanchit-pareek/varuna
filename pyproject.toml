@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tidetrace"
+name = "varuna"
 version = "1.0.0"
 description = "Offline SAR oil slick detection, drift hindcast and forecast, and AIS vessel attribution. SIH26143, NTRO, Space Technology."
 readme = "README.md"

@@ -1,15 +1,17 @@
 {
-  "id": "nalin1ahuja/tidetrace-prepare-data",
-  "title": "TideTrace Prepare Data",
-  "code_file": "tidetrace-prepare-data.ipynb",
+  "id": "nalin1ahuja/varuna-train",
+  "title": "Varuna Train",
+  "code_file": "varuna-train.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
-  "enable_gpu": false,
+  "enable_gpu": true,
   "enable_tpu": false,
   "enable_internet": true,
   "dataset_sources": [],
   "competition_sources": [],
-  "kernel_sources": [],
+  "kernel_sources": [
+    "nalin1ahuja/varuna-prepare-data"
+  ],
   "model_sources": []
 }

@@ -11,7 +11,7 @@
 
   <rect x="0" y="0" width="1160" height="580" fill="#0c141f"/>
 
-  <text x="24" y="34" fill="#ffffff" font-family="ui-monospace,Consolas,monospace" font-size="17" font-weight="700">TideTrace: the offline boundary</text>
+  <text x="24" y="34" fill="#ffffff" font-family="ui-monospace,Consolas,monospace" font-size="17" font-weight="700">Varuna: the offline boundary</text>
   <text x="24" y="56" fill="#8fa6bf" font-family="ui-monospace,Consolas,monospace" font-size="13">Network access exists only to the left of the wall. The judged demo reads files.</text>
 
   <!-- lane labels -->

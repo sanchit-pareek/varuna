@@ -90,14 +90,14 @@
     }).setView([20, 78], 4);
 
     map.attributionControl.setPrefix("");
-    map.attributionControl.addAttribution("TideTrace offline console");
+    map.attributionControl.addAttribution("Varuna offline console");
 
     L.control.zoom({ position: "topright" }).addTo(map);
     L.control.scale({ imperial: false, position: "bottomright" }).addTo(map);
 
     // Exposed for diagnostics and for the browser checks that drive this map
     // during development. Read-only as far as the app is concerned.
-    window.__tidetrace = { map: map, layers: layerGroup, state: state };
+    window.__varuna = { map: map, layers: layerGroup, state: state };
 
     // Leaflet stacks everything in `overlayPane` by DOM insertion order, and the
     // SAR backdrop is inserted at RUN time -- after the optical chip, which is
@@ -1386,7 +1386,7 @@
      slick harder to read, which is the one thing this page exists to show. */
   function applyTheme(mode) {
     document.documentElement.dataset.theme = mode;
-    try { localStorage.setItem("tidetrace-theme", mode); } catch (e) { /* private mode */ }
+    try { localStorage.setItem("varuna-theme", mode); } catch (e) { /* private mode */ }
     var b = $("theme");
     if (b) {
       b.title = mode === "dark" ? "Switch to light theme" : "Switch to dark theme";
@@ -1406,7 +1406,7 @@
       .forEach(function (def) {
         var btn = $(def[0]);
         if (!btn) return;
-        var key = "tidetrace-" + def[1];
+        var key = "varuna-" + def[1];
         var hidden = false;
         try { hidden = localStorage.getItem(key) === "1"; } catch (e) { /* ignore */ }
 
@@ -1427,7 +1427,7 @@
 
   function initTheme() {
     var stored = null;
-    try { stored = localStorage.getItem("tidetrace-theme"); } catch (e) { /* ignore */ }
+    try { stored = localStorage.getItem("varuna-theme"); } catch (e) { /* ignore */ }
     applyTheme(stored === "light" ? "light" : "dark");
     var b = $("theme");
     if (b) {

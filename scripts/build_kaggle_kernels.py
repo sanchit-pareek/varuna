@@ -6,11 +6,11 @@ an archaeology exercise in a diff full of escaped newlines.
 
 Two kernels are produced under `kaggle/`:
 
-  tidetrace-prepare-data   CPU, internet on. Downloads Zenodo, tiles it in a
+  varuna-prepare-data   CPU, internet on. Downloads Zenodo, tiles it in a
                            streaming loop so the disk never holds the whole
                            archive expanded, pushes tiles to the HF dataset repo.
 
-  tidetrace-train          GPU, internet on. Pulls tiles from HF, trains, pushes
+  varuna-train          GPU, internet on. Pulls tiles from HF, trains, pushes
                            the checkpoint back on every improvement, and can
                            resume after Kaggle kills the session.
 
@@ -29,8 +29,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "kaggle"
 KAGGLE_USER = "nalin1ahuja"
-HF_MODEL_REPO = "N-1ACE/tidetrace-oil-unet"
-HF_DATASET_REPO = "N-1ACE/tidetrace-sar-tiles"
+HF_MODEL_REPO = "N-1ACE/varuna-oil-unet"
+HF_DATASET_REPO = "N-1ACE/varuna-sar-tiles"
 
 
 def md(*lines: str) -> dict:
@@ -65,7 +65,7 @@ BOOTSTRAP = [
     "    print('$', ' '.join(args), flush=True)",
     "    subprocess.run(list(args), check=True)",
     "",
-    "# No credential is required to run this notebook. The TideTrace repos on the",
+    "# No credential is required to run this notebook. The Varuna repos on the",
     "# Hub are public, so code downloads anonymously, and results leave through",
     "# Kaggle's own kernel output. A token is used only if you have chosen to add",
     "# one as a Secret, in which case results are ALSO mirrored to the Hub.",
@@ -83,17 +83,17 @@ BOOTSTRAP = [
 PULL_CODE = [
     "from huggingface_hub import snapshot_download",
     "",
-    "CODE_DIR = Path('/kaggle/working/tidetrace')",
+    "CODE_DIR = Path('/kaggle/working/varuna')",
     "snapshot_download(repo_id=%r, repo_type='model'," % HF_MODEL_REPO,
     "                  local_dir=str(CODE_DIR), allow_patterns=['code/**'])",
     "sys.path.insert(0, str(CODE_DIR / 'code'))",
     "",
     "# Keep every path Kaggle-local. The package writes under data/ by default.",
-    "os.environ['TIDETRACE_DATA'] = '/kaggle/working/data'",
-    "os.environ['TIDETRACE_MODELS'] = '/kaggle/working/models'",
+    "os.environ['VARUNA_DATA'] = '/kaggle/working/data'",
+    "os.environ['VARUNA_MODELS'] = '/kaggle/working/models'",
     "",
     "from app import config, hub",
-    "print('TideTrace', config.VERSION, '| tile', config.TILE, '| overlap', config.TILE_OVERLAP)",
+    "print('Varuna', config.VERSION, '| tile', config.TILE, '| overlap', config.TILE_OVERLAP)",
     "print('dataset repo:', hub.DATASET_REPO)",
     "print('model repo  :', hub.MODEL_REPO)",
 ]
@@ -101,7 +101,7 @@ PULL_CODE = [
 
 def prepare_cells() -> list:
     return [
-        md("# TideTrace data preparation",
+        md("# Varuna data preparation",
            "",
            "**SIH26143** &middot; NTRO oil spill attribution &middot; data stage",
            "",
@@ -129,7 +129,7 @@ def prepare_cells() -> list:
         code("!pip -q install huggingface_hub py7zr rasterio 2>&1 | tail -2",
              *BOOTSTRAP),
 
-        md("## 2. Pull the TideTrace source", "",
+        md("## 2. Pull the Varuna source", "",
            "The tiling logic, the 3-class relabelling and the mask georeferencing rule",
            "all live in the package. Duplicating them in a notebook is how the two",
            "silently drift apart."),
@@ -164,12 +164,12 @@ def prepare_cells() -> list:
              "                   0: MAX_PLAIN_SEA + MAX_HARD_NEG + MAX_SCENE_NEG}",
              "BATCH_SIZE    = 60                          # chips per extraction round",
              "",
-             "WORK  = Path('/kaggle/temp/tidetrace'); WORK.mkdir(parents=True, exist_ok=True)",
+             "WORK  = Path('/kaggle/temp/varuna'); WORK.mkdir(parents=True, exist_ok=True)",
              "TILES = Path('/kaggle/working/tiles');  TILES.mkdir(parents=True, exist_ok=True)",
              "",
              "import time",
              "import urllib.request, urllib.error",
-             "UA = {'User-Agent': 'TideTrace/1.0 (SIH26143 research)'}",
+             "UA = {'User-Agent': 'Varuna/1.0 (SIH26143 research)'}",
              "",
              "def _open(url, method='GET', timeout=180):",
              "    return urllib.request.urlopen(",
@@ -430,13 +430,13 @@ def prepare_cells() -> list:
              "    print('No token, so no Hub mirror. The training notebook reads this')",
              "    print('kernel output directly, which is all it needs.')",
              "",
-             "print('\\nNext: run the tidetrace-train notebook on a GPU.')"),
+             "print('\\nNext: run the varuna-train notebook on a GPU.')"),
     ]
 
 
 def train_cells() -> list:
     return [
-        md("# TideTrace training",
+        md("# Varuna training",
            "",
            "**SIH26143** &middot; NTRO oil spill attribution &middot; model stage",
            "",
@@ -484,7 +484,7 @@ def train_cells() -> list:
 
         md("## 3. Find the tiles", "",
            "First choice is the chained kernel output: this notebook declares",
-           "`tidetrace-prepare-data` as a source, so its tiles appear under",
+           "`varuna-prepare-data` as a source, so its tiles appear under",
            "`/kaggle/input` with no download and no credential. The Hub is the fallback",
            "for training from a previously published tile set."),
         code("SANITY = False   # True uses a small subset for a five minute smoke run",
@@ -508,7 +508,7 @@ def train_cells() -> list:
              "if _n == 0:",
              "    raise SystemExit(",
              "        'No tiles are available. This notebook trains on the output of '",
-             "        'tidetrace-prepare-data, which must finish successfully first. '",
+             "        'varuna-prepare-data, which must finish successfully first. '",
              "        'Check its status before running this one.')",
              "print('%d tiles available' % _n)",
              "files = sorted(TILES.glob('*.npz'))",
@@ -658,11 +658,11 @@ def write(slug: str, title: str, cells: list, gpu: bool,
 def main() -> int:
     # Kaggle derives the kernel slug from the title, so the title has to
     # slugify back to the id or it silently creates a second kernel.
-    a = write("tidetrace-prepare-data", "TideTrace Prepare Data",
+    a = write("varuna-prepare-data", "Varuna Prepare Data",
               prepare_cells(), gpu=False)
-    b = write("tidetrace-train", "TideTrace Train",
+    b = write("varuna-train", "Varuna Train",
               train_cells(), gpu=True,
-              kernel_sources=["%s/tidetrace-prepare-data" % KAGGLE_USER])
+              kernel_sources=["%s/varuna-prepare-data" % KAGGLE_USER])
     for folder in (a, b):
         nb = json.loads(next(folder.glob("*.ipynb")).read_text(encoding="utf-8"))
         print("%-44s %2d cells" % (str(folder.relative_to(ROOT)), len(nb["cells"])))

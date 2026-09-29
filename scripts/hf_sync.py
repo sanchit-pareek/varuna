@@ -51,10 +51,10 @@ tags:
 - maritime
 ---
 
-# TideTrace SAR training tiles
+# Varuna SAR training tiles
 
 512 x 512 tiles cut from the Zenodo Sentinel-1 SAR oil spill dataset, prepared
-for the TideTrace oil spill attribution system (SIH26143, NTRO).
+for the Varuna oil spill attribution system (SIH26143, NTRO).
 
 ## Contents
 
@@ -99,10 +99,10 @@ tags:
 library_name: pytorch
 ---
 
-# TideTrace oil slick segmenter
+# Varuna oil slick segmenter
 
 Three class semantic segmentation of Sentinel-1 SAR: sea, look-alike, mineral
-oil. Trained for TideTrace, the SIH26143 oil spill attribution console.
+oil. Trained for Varuna, the SIH26143 oil spill attribution console.
 
 ## Files
 

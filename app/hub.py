@@ -32,9 +32,9 @@ from typing import Any, Dict, Optional, Sequence
 
 from . import config
 
-DEFAULT_USER = os.environ.get("TIDETRACE_HF_USER", "N-1ACE")
-DATASET_REPO = os.environ.get("TIDETRACE_HF_DATASET", "%s/tidetrace-sar-tiles" % DEFAULT_USER)
-MODEL_REPO = os.environ.get("TIDETRACE_HF_MODEL", "%s/tidetrace-oil-unet" % DEFAULT_USER)
+DEFAULT_USER = os.environ.get("VARUNA_HF_USER", "N-1ACE")
+DATASET_REPO = os.environ.get("VARUNA_HF_DATASET", "%s/varuna-sar-tiles" % DEFAULT_USER)
+MODEL_REPO = os.environ.get("VARUNA_HF_MODEL", "%s/varuna-oil-unet" % DEFAULT_USER)
 
 CHECKPOINT_NAME = "oil_unet_best.pt"
 REPORT_NAME = "oil_unet_best.report.json"

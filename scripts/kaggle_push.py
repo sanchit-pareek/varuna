@@ -1,4 +1,4 @@
-"""Push a TideTrace notebook to Kaggle and watch it run.
+"""Push a Varuna notebook to Kaggle and watch it run.
 
 Kaggle is where the GPU is. This wraps `kaggle kernels push/status/output` so
 the two notebooks under `kaggle/` can be shipped and monitored without leaving
@@ -35,8 +35,8 @@ ROOT = Path(__file__).resolve().parents[1]
 KAGGLE_DIR = ROOT / "kaggle"
 
 KERNELS = {
-    "prepare": "tidetrace-prepare-data",
-    "train": "tidetrace-train",
+    "prepare": "varuna-prepare-data",
+    "train": "varuna-train",
 }
 
 # Accelerator ids the Kaggle CLI accepts, as of 2026.
