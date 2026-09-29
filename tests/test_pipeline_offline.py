@@ -177,8 +177,16 @@ def test_job_document_and_geojson_export(no_network, selftest_scene, cached_meto
 
         note = client.get("/api/report/%s" % job_id)
         assert note.status_code == 200
-        assert "Attribution Note" in note.text
-        assert "not legal proof" in note.text.lower() or "not proof" in note.text.lower()
+        # The report was restructured into seven numbered sections, so the old
+        # "Attribution Note" title is gone. What that assertion was actually
+        # for, the caveat being present, is still asserted below.
+        for title in ("Case summary", "Observed evidence", "Modelled inference",
+                      "Attribution analysis", "Uncertainty and robustness",
+                      "Data provenance and reproducibility",
+                      "Limitations and next steps"):
+            assert title in note.text, "the report lost its %s section" % title
+        assert "investigative lead" in note.text
+        assert "not a finding of discharge" in note.text
 
 
 def test_health_reports_the_truth_about_missing_pieces(no_network, selftest_scene):

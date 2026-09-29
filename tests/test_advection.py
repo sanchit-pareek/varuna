@@ -102,3 +102,17 @@ def test_advection_is_deterministic(uniform_field):
     a = advection.advect(np.array([71.5] * 20), np.array([19.0] * 20), T0, **kw)
     b = advection.advect(np.array([71.5] * 20), np.array([19.0] * 20), T0, **kw)
     assert np.allclose(a.lon, b.lon) and np.allclose(a.lat, b.lat)
+
+
+def test_scenario_ensemble_preserves_particle_budget_and_is_deterministic(uniform_field):
+    from app.drift import advection
+
+    lon = np.full(25, 71.5)
+    lat = np.full(25, 19.0)
+    first, parts = advection.advect_scenarios(lon, lat, T0, 3, uniform_field, "backward")
+    second, _ = advection.advect_scenarios(lon, lat, T0, 3, uniform_field, "backward")
+
+    assert first.lon.shape[1] == 25
+    assert len(parts) == len(advection.default_scenarios())
+    assert first.meta["ensemble_kind"] == "multi_scenario"
+    assert np.allclose(first.lon, second.lon) and np.allclose(first.lat, second.lat)

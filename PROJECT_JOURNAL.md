@@ -1791,3 +1791,54 @@ Console clean apart from 404s on basemap tiles outside the cached footprints,
 which are expected and swapped for a transparent tile.
 
 106 tests, ruff clean. Version 1.4.1.
+
+---
+
+## Entry 021 - 2026-09-29 - Phase 1 uncertainty and evidence hardening
+
+**Old assumption:** one drift ensemble used the configured windage and
+deflection as the only operational scenario, and trajectory compatibility had a
+binary 45-degree rule. Candidate ranking was easier to inspect than the quality
+of the case that produced it.
+
+**New assumption:** the same bounded particle budget is divided among five
+named, deterministic scenarios: baseline, lower windage, higher windage,
+windage with leeway, and current-dominant transport. The results are combined
+as one multi-scenario distribution while the scenario-level origins stay in the
+case document. Trajectory compatibility is now a smooth Gaussian angular score,
+not a calibrated probability or a threshold.
+
+**Expected benefit:** origin uncertainty now describes both particle-level field
+error and plausible transport assumptions. The case record exposes 50 percent
+and 90 percent origin regions, a scenario-derived release-time interval, and a
+separate case-evidence quality assessment. Candidate evidence remains explicitly
+investigative, never proof of discharge.
+
+**Validation:** scenario runs preserve the original particle budget and are
+deterministic with a fixed seed. The drift physics tests, offline pipeline tests,
+and complete suite passed: 109 passed, 7 skipped. New tests pin trajectory
+continuity, opportunity/evidence separation, scenario determinism, case-quality
+semantics, and reproducible case hashes.
+
+---
+
+## Entry 022 - 2026-09-29 - Phase 2 attribution sensitivity
+
+**Old assumption:** the project had one explainable weighted rank, but the
+operator could not see whether a candidate held its place after an important
+assumption was removed or uncertainty was widened.
+
+**New assumption:** `BaselineAttributionModel` retains the established weighted
+ranker and `ImprovedAttributionModel` supplies its evidence-oriented V2 surface.
+Each returned candidate now carries counterfactual scores for removing behaviour
+evidence, vessel-type prior, and trajectory evidence, plus an expanded-origin
+uncertainty case. It reports `STABLE` or `SENSITIVE` and names the assumption
+with the largest score effect.
+
+**Reason:** an attribution conclusion that moves materially when one component
+is removed is a lead that depends on that component, not a robust conclusion.
+The output calls these scores sensitivity evidence, never probability or proof.
+
+**Validation:** scoring, offline pipeline, and full tests passed: 110 passed,
+7 skipped. The new regression test verifies the complete counterfactual set is
+emitted for a ranked candidate.

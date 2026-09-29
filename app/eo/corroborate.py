@@ -45,6 +45,11 @@ OBSCURED_FRACTION = 0.35
 # labelled weak: a slick will have moved well beyond its own footprint.
 WEAK_AFTER_HOURS = 72.0
 
+#: Below this cloud-free fraction of a polygon, the comparison is not reported
+#: as a verdict at all. A delta over a handful of pixels looks like a
+#: measurement in the API and is not one.
+MIN_VALID_FRACTION = 0.30
+
 
 def _optical_dir() -> Path:
     return Path(config.DATA_DIR) / "optical"
@@ -173,6 +178,8 @@ def corroborate(polygons: Sequence[Dict[str, Any]], scene_id: str) -> Dict[str, 
         n_in = int(inside.sum())
         if n_in < 12:
             verdicts.append({"polygon_id": pid, "verdict": "too_small",
+                             "status": "indeterminate",
+                             "valid_pixel_fraction": 0.0,
                              "note": "polygon covers too few optical pixels to compare"})
             continue
 
@@ -180,49 +187,107 @@ def corroborate(polygons: Sequence[Dict[str, Any]], scene_id: str) -> Dict[str, 
         n_ring = int(ring.sum())
         if n_ring < 12:
             verdicts.append({"polygon_id": pid, "verdict": "no_surroundings",
+                             "status": "indeterminate",
+                             "valid_pixel_fraction": 0.0,
                              "note": "no clear water ring around this polygon"})
             continue
 
+        # How much of this polygon is actually observable, after cloud and
+        # nodata. A delta computed over a quarter of the pixels is a different
+        # claim from one computed over all of them, and the fraction has to
+        # travel with the verdict.
+        clear = inside & ~obscured
         frac_obscured = float(obscured[inside].mean())
-        if frac_obscured > OBSCURED_FRACTION:
+        valid_fraction = float(clear.sum()) / float(n_in) if n_in else 0.0
+        if valid_fraction < MIN_VALID_FRACTION:
             verdicts.append({"polygon_id": pid, "verdict": "obscured",
+                             "status": "indeterminate",
                              "obscured_fraction": round(frac_obscured, 3),
-                             "note": "cloud or nodata over this polygon in the optical chip"})
+                             "valid_pixel_fraction": round(valid_fraction, 3),
+                             "optical_pixels": n_in,
+                             "clear_optical_pixels": int(clear.sum()),
+                             "time_delta_hours": round(offset_h, 2),
+                             "time_is_exact": False,
+                             "note": "only %.0f percent of this polygon is cloud-free optical data"
+                                     % (valid_fraction * 100.0)})
             continue
 
-        in_mean = float(np.mean(grey[inside & ~obscured]))
-        ring_mean = float(np.mean(grey[ring & ~obscured])) if (ring & ~obscured).any() else in_mean
+        in_mean = float(np.mean(grey[clear]))
+        ring_clear = ring & ~obscured
+        ring_mean = float(np.mean(grey[ring_clear])) if ring_clear.any() else in_mean
         delta = in_mean - ring_mean
+        delta_sd = float(np.std(grey[clear])) if int(clear.sum()) > 1 else 0.0
 
         if delta <= -DARKER_LEVELS:
-            verdict, note = "consistent", "darker than the surrounding water, as a surface film reads"
+            verdict, status, note = ("consistent", "corroborated",
+                                     "darker than the surrounding water, as a surface film reads")
         elif delta >= BRIGHTER_LEVELS:
-            verdict, note = "inconsistent", "brighter than its surroundings, which a slick is not"
+            verdict, status, note = ("inconsistent", "contradicted",
+                                     "brighter than its surroundings, which a slick is not")
         else:
-            verdict, note = "neutral", "no optical difference from the surrounding water"
+            verdict, status, note = ("neutral", "indeterminate",
+                                     "no optical difference from the surrounding water")
 
         verdicts.append({
             "polygon_id": pid,
             "verdict": verdict,
+            "status": status,
             "note": note,
             "levels_vs_surroundings": round(delta, 1),
+            "levels_stddev_inside": round(delta_sd, 2),
             "obscured_fraction": round(frac_obscured, 3),
+            "valid_pixel_fraction": round(valid_fraction, 3),
+            "optical_pixels": n_in,
+            "clear_optical_pixels": int(clear.sum()),
+            "time_delta_hours": round(offset_h, 2),
+            "time_is_exact": False,
         })
 
     counts: Dict[str, int] = {}
     for v in verdicts:
         counts[v["verdict"]] = counts.get(v["verdict"], 0) + 1
+    statuses: Dict[str, int] = {}
+    for v in verdicts:
+        statuses[v["status"]] = statuses.get(v["status"], 0) + 1
+
+    # A scene is only called corroborated when the verdict actually survived
+    # both the time offset and the cloud fraction. Naming a status that the
+    # verdicts do not support is the failure this whole module guards against.
+    if weak or statuses.get("corroborated", 0) == 0:
+        status = "indeterminate"
+    elif statuses.get("corroborated", 0) > statuses.get("contradicted", 0):
+        status = "corroborated"
+    elif statuses.get("contradicted", 0) > 0:
+        status = "contradicted"
+    else:
+        status = "indeterminate"
 
     return {
         "available": True,
+        "status": status,
+        "status_meaning": {
+            "corroborated": "A surface film was visible where the radar saw one.",
+            "contradicted": "The optical scene does not support a surface film there.",
+            "indeterminate": "The optical chip cannot decide this. No claim is made.",
+        },
         "source": meta.get("collection"),
         "item_id": meta.get("item_id"),
         "acquired": meta.get("acquired"),
         "offset_hours": round(offset_h, 2),
+        "time_delta": {
+            "hours": round(offset_h, 2),
+            "sar_acquisition": meta.get("sar_acquisition"),
+            "optical_acquisition": meta.get("acquired"),
+            "is_exact": False,
+            "note": "Sentinel-2 did not observe this water at the radar time. Any slick "
+                    "will have moved and spread in this interval, so a negative optical "
+                    "result is not evidence of absence.",
+        },
         "offset_label": meta.get("offset_label"),
         "cloud_percent": meta.get("cloud_percent"),
         "weak": weak,
         "counts": counts,
+        "status_counts": statuses,
         "verdicts": verdicts,
         "caveat": (
             "Optical corroboration only. Sentinel-2 did not observe this water at the "

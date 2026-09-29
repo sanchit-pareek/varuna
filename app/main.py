@@ -23,8 +23,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config
-from .api import ais as ais_routes, detect as detect_routes, drift as drift_routes
-from .api import health as health_routes, pipeline as pipeline_routes, report as report_routes
+from .api import ais as ais_routes, cases as cases_routes, detect as detect_routes, drift as drift_routes
+from .api import evaluation as evaluation_routes, health as health_routes, pipeline as pipeline_routes, report as report_routes
 
 log = logging.getLogger("varuna")
 
@@ -90,7 +90,9 @@ app.include_router(detect_routes.router)
 app.include_router(drift_routes.router)
 app.include_router(ais_routes.router)
 app.include_router(pipeline_routes.router)
+app.include_router(cases_routes.router)
 app.include_router(report_routes.router)
+app.include_router(evaluation_routes.router)
 
 Path(config.STATIC_DIR).mkdir(parents=True, exist_ok=True)
 app.mount("/data", StaticFiles(directory=str(config.DATA_DIR)), name="data")

@@ -254,3 +254,92 @@ def test_scores_are_distinct_enough_to_act_on():
     }
     scores = [round(s.score, 1) for s in _rank(tracks)]
     assert len(set(scores)) == len(scores), "distinct vessels produced identical scores: %r" % scores
+
+
+def test_trajectory_score_changes_smoothly_with_heading_mismatch():
+    """A one-degree course change must not cross a binary scoring cliff."""
+    from app.ais.score import s_trajectory
+
+    base = _track(30, "MT ALIGNED", "84", [0.0], 19.0, cog=90.0)
+    near = _track(31, "MT NEAR", "84", [0.0], 19.0, cog=91.0)
+    off = _track(32, "MT OFF", "84", [0.0], 19.0, cog=140.0)
+    origin = ORIGIN
+    slick = (71.62, 19.0)
+
+    base_score, _ = s_trajectory(base, 0, origin, slick)
+    near_score, _ = s_trajectory(near, 0, origin, slick)
+    off_score, _ = s_trajectory(off, 0, origin, slick)
+
+    assert base_score > near_score > off_score >= 0.0
+    assert base_score - near_score < 0.01
+
+
+def test_candidate_exposes_opportunity_and_evidence_separately():
+    suspect = _rank({40: _track(40, "MT EXPLAIN", "84", [0.0] * 30, 19.0)})[0].to_dict()
+    evidence = suspect["evidence"]
+
+    assert evidence["model_version"] == "improved-attribution-v2"
+    assert 0.0 <= evidence["opportunity_score"] <= 100.0
+    assert 0.0 <= evidence["evidence_score"] <= 100.0
+    assert evidence["positive_evidence"]
+    assert evidence["data_quality"]
+
+
+def test_counterfactuals_identify_a_ranking_dependency():
+    from app.ais import score as score_mod
+    from app.ais.filter import _min_distance
+
+    tanker = _track(50, "MT GAP", "84", [-0.03 + 0.001 * i for i in range(80)], 19.0,
+                    gap_range=(20, 60))
+    cargo = _track(51, "MV STEADY", "70", [-0.03 + 0.001 * i for i in range(80)], 19.0)
+    tracks = {50: tanker, 51: cargo}
+    ring = _ring()
+    closest = {mmsi: _min_distance(track, ring, ORIGIN[0], ORIGIN[1])
+               for mmsi, track in tracks.items()}
+
+    out = score_mod.counterfactual_analysis(
+        tracks, closest, ring, ORIGIN[0], ORIGIN[1], 71.62, 19.0,
+        t_origin_ts=int(T_ORIGIN.timestamp()), zone_radius_km=1.5,
+    )
+
+    assert out and out[0]["scenarios"][0]["name"] == "baseline"
+    names = {item["name"] for item in out[0]["scenarios"]}
+    assert {"no_ais_gap", "no_vessel_type", "no_trajectory",
+            "expanded_origin_uncertainty"} <= names
+
+
+def test_every_declared_counterfactual_is_reported():
+    """A scenario that cannot be evaluated must still appear, as not_applicable.
+
+    Silence would read as "removing this assumption changes nothing", which is
+    the one conclusion an absent scenario must not imply.
+    """
+    from app.ais import score as score_mod
+    from app.ais.filter import _min_distance
+
+    track = _track(60, "MT TEST", "84", [-0.03 + 0.001 * i for i in range(80)], 19.0)
+    tracks = {60: track}
+    ring = _ring()
+    closest = {60: _min_distance(track, ring, ORIGIN[0], ORIGIN[1])}
+
+    out = score_mod.counterfactual_analysis(
+        tracks, closest, ring, ORIGIN[0], ORIGIN[1], 71.62, 19.0,
+        t_origin_ts=int(T_ORIGIN.timestamp()), zone_radius_km=1.5,
+        # no release interval and no envelope rings supplied on purpose
+    )
+
+    reported = out[0]["scenarios"]
+    names = [item["name"] for item in reported]
+    expected = ["baseline"] + [case["name"] for case in score_mod.COUNTERFACTUAL_CASES]
+    assert names == expected
+
+    by_name = {item["name"]: item for item in reported}
+    for case in ("expanded_release_window", "alternative_drift_model"):
+        assert by_name[case]["applicable"] is False
+        assert by_name[case]["reason"]
+        assert "score" not in by_name[case]
+    # Cases that never depended on the missing inputs are still evaluated.
+    assert by_name["no_vessel_type"]["applicable"] is True
+    assert by_name["no_vessel_type"]["score"] is not None
+    assert out[0]["stability"] in ("STABLE", "SENSITIVE", "UNSTABLE")
+    assert isinstance(out[0]["max_score_delta"], float)

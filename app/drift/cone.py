@@ -62,19 +62,25 @@ def origin_zone(run: EnsembleRun, index: int, buffer_km: float = None,
     zone instead of implying a point fix.
     """
     buffer_km = config.ORIGIN_BUFFER_KM if buffer_km is None else float(buffer_km)
-    ring = percentile_ring(run.lon[index], run.lat[index], pct=pct)
-    buffered = buffer_ring_km(ring, buffer_km) if ring else []
+    ring_50 = percentile_ring(run.lon[index], run.lat[index], pct=50.0)
+    ring_90 = percentile_ring(run.lon[index], run.lat[index], pct=pct)
+    buffered = buffer_ring_km(ring_90, buffer_km) if ring_90 else []
     lon_c = float(np.median(run.lon[index]))
     lat_c = float(np.median(run.lat[index]))
     return {
+        # Keep the historic aliases while exposing both uncertainty envelopes.
         "ring": buffered,
-        "core_ring": ring,
+        "core_ring": ring_90,
+        "ring_50": ring_50,
+        "ring_90": ring_90,
         "lon": lon_c,
         "lat": lat_c,
         "t": run.times[index].isoformat(),
         "spread_km": float(run.spread_km[index]),
         "buffer_km": buffer_km,
         "area_km2": ring_area_km2(buffered),
+        "area_50_km2": ring_area_km2(ring_50),
+        "area_90_km2": ring_area_km2(ring_90),
         "percentile": pct,
     }
 

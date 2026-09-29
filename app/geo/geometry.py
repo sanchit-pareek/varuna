@@ -295,8 +295,136 @@ class SlickPolygon:
                 "confidence": round(self.confidence, 4),
                 "mean_sigma0_db": None if self.mean_sigma0_db is None else round(self.mean_sigma0_db, 2),
                 "contrast_db": None if self.contrast_db is None else round(self.contrast_db, 2),
+                "shape": self.extra.get("shape"),
             },
         }
+
+
+def shape_diagnostics(component_mask: np.ndarray, ring_px: Sequence[Tuple[float, float]],
+                      area_km2: float, length_km: float, width_km: float,
+                      perimeter_km: float, compactness: float,
+                      n_components: int = 1,
+                      largest_component_fraction: float = 1.0) -> Dict[str, Any]:
+    """Describe the shape of a detected slick, not just its area.
+
+    Area alone cannot distinguish a compact release from a long windrow or a
+    broken emulsion trail, and those three imply different source mechanisms
+    and different vessel behaviour. The spec asks for four properties; each is
+    computed here with the measurement it came from, and each is stated in a
+    unit an analyst can argue with.
+
+    elongation        length / width. 1.0 is a disc; petroleum films and gas
+                      seeps are commonly 1.5 to 4 once wind streaks them.
+    irregularity      1 - compactness. 0 is a circle, 1 is a filament.
+    boundary_complexity
+                      box-counting slope of the pixel boundary across a
+                      geometric scale range. 1.0 for a straight edge, higher for
+                      a ragged one. Read comparatively within one run, not as an
+                      absolute dimension.
+    fragmentation     components, and the fraction of the class the largest one
+                      holds. 1.0 is a single slick.
+    """
+    mask = np.asarray(component_mask, dtype=bool)
+    elongation = float(length_km / width_km) if width_km > 1e-9 else None
+    irregularity = float(max(0.0, 1.0 - float(compactness)))
+    boundary = boundary_complexity(mask)
+    return {
+        "elongation": None if elongation is None else round(elongation, 4),
+        "irregularity": round(irregularity, 4),
+        "boundary_complexity": round(boundary, 4),
+        "boundary_vertices": int(len(ring_px)),
+        "fragmentation": {
+            "components": int(n_components),
+            "largest_component_fraction": round(float(largest_component_fraction), 4),
+            "is_single_feature": bool(n_components <= 1),
+        },
+        "inputs": {
+            "area_km2": round(float(area_km2), 4),
+            "length_km": round(float(length_km), 4),
+            "width_km": round(float(width_km), 4),
+            "perimeter_km": round(float(perimeter_km), 4),
+            "compactness": round(float(compactness), 4),
+            "pixels": int(mask.sum()),
+        },
+        "interpretation": _shape_interpretation(elongation, irregularity, boundary,
+                                                n_components, largest_component_fraction),
+        "note": ("Shape is derived from the thresholded mask, so it describes the "
+                 "detection footprint and not the emulsion itself."),
+    }
+
+
+def boundary_complexity(mask: np.ndarray) -> float:
+    """Box-counting roughness of a binary mask, over a geometric scale range.
+
+    Count the boxes of side r the mask occupies, over r from the mask's long
+    edge down to a single pixel, then take the slope of log(count) against
+    log(1/r). A one-pixel line gives 1.0; a space-filling set gives 2.0.
+
+    What this is honestly good for: ranking the roughness of pixel boundaries
+    produced by the same pipeline, so a ragged edge from a threshold sitting on
+    the decision surface can be told apart from a smooth one. What it is not:
+    a true Minkowski dimension of a smooth curve. At the scale range available
+    inside a single SAR tile a disc measures nearer 1.4 than the 2.0 its
+    infinite-resolution limit would give. Read it comparatively within one run,
+    never as an absolute dimension.
+    """
+    m = np.asarray(mask, dtype=bool)
+    if not m.any():
+        return 0.0
+    h, w = m.shape
+    longest = max(h, w)
+    if longest < 4:
+        return 1.0
+    # Geometric scale ladder, rounded and de-duplicated, always including 1.
+    raw = [max(1, int(round(longest / (2.0 ** k)))) for k in range(0, 8)]
+    scales = sorted({r for r in raw if 1 <= r <= longest}, reverse=True)
+    if len(scales) < 3:
+        scales = sorted({1, max(1, longest // 2), max(1, longest // 4), longest}, reverse=True)
+    if len(scales) < 2:
+        return 1.0
+
+    counts: List[Tuple[int, int]] = []
+    for r in scales:
+        hh = (h + r - 1) // r
+        ww = (w + r - 1) // r
+        pad = np.zeros((hh * r, ww * r), dtype=bool)
+        pad[:h, :w] = m
+        occupied = pad.reshape(hh, r, ww, r).any(axis=(1, 3))
+        counts.append((r, int(occupied.sum())))
+    if len(counts) < 2:
+        return 1.0
+
+    xs = np.log([1.0 / r for r, _ in counts])
+    ys = np.log([max(1, c) for _, c in counts])
+    if float(np.ptp(xs)) < 1e-9:
+        return 1.0
+    slope = float(np.polyfit(xs, ys, 1)[0])
+    return float(min(2.0, max(1.0, slope)))
+
+
+def _shape_interpretation(elongation, irregularity: float, boundary: float,
+                          n_components: int, largest: float) -> List[str]:
+    notes: List[str] = []
+    if elongation is not None:
+        if elongation >= 4.0:
+            notes.append("Strongly elongated (%0.1f:1). Consistent with a windrow or "
+                         "streaked emulsion rather than a point release." % elongation)
+        elif elongation >= 1.5:
+            notes.append("Moderately elongated (%0.1f:1)." % elongation)
+        else:
+            notes.append("Rounded to weakly elongated (%0.1f:1), consistent with an "
+                         "unbroken release." % elongation)
+    if irregularity >= 0.4:
+        notes.append("Irregular outline. Could be a genuine irregular emulsion or a "
+                     "threshold artefact near the detection limit.")
+    if boundary >= 1.6:
+        notes.append("Ragged boundary (box dimension %.2f). Often indicates the "
+                     "detector is running close to its decision surface." % boundary)
+    if n_components > 1:
+        notes.append("%d disconnected components, the largest holding %.0f percent of "
+                     "the class. Fragmentation is consistent with a release broken up "
+                     "by shear, or with thin oil below threshold." % (n_components, 100 * largest))
+    return notes
 
 
 def polygons_from_mask(
@@ -371,6 +499,13 @@ def polygons_from_mask(
                 if sea_db is not None:
                     contrast = float(sea_db - mean_db)
 
+        length_km = metrics["length_m"] / 1000.0
+        width_km = metrics["width_m"] / 1000.0
+        perimeter_km = metrics["perimeter_m"] / 1000.0
+        extra: Dict[str, Any] = {"shape": shape_diagnostics(
+            sub, ring_px, area_km2, length_km, width_km, perimeter_km,
+            metrics["compactness"], n_components=1, largest_component_fraction=1.0)}
+
         out.append(
             SlickPolygon(
                 polygon_id="%s%02d" % (prefix, len(out) + 1),
@@ -378,9 +513,9 @@ def polygons_from_mask(
                 ring_lonlat=ring,
                 pixel_count=count,
                 area_km2=float(area_km2),
-                perimeter_km=metrics["perimeter_m"] / 1000.0,
-                length_km=metrics["length_m"] / 1000.0,
-                width_km=metrics["width_m"] / 1000.0,
+                perimeter_km=perimeter_km,
+                length_km=length_km,
+                width_km=width_km,
                 orientation_deg=metrics["orientation_deg"],
                 compactness=metrics["compactness"],
                 centroid_lon=clon,
@@ -389,6 +524,7 @@ def polygons_from_mask(
                 confidence=conf,
                 mean_sigma0_db=mean_db,
                 contrast_db=contrast,
+                extra=extra,
             )
         )
     out.sort(key=lambda p: p.area_km2, reverse=True)

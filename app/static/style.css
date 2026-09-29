@@ -309,10 +309,16 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
    colour that means "this is wrong". */
 .src.bad .nm, .src.bad .vl { color: var(--bad); }
 
-/* ================================================================ centre */
+/* ================================================================ centre
+   Map-first. The three rows are the case header, the chart, and the time
+   axis. The three summary cards that used to sit in a fixed strip under the
+   map now live in the right rail under the mode that explains them, because a
+   card about metocean belongs next to the drift model that consumed it rather
+   than permanently occupying 200px of vertical space under every mode. The
+   chart takes the height the strip used to hold. */
 .centre {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--bg);
   min-height: 0;
   min-width: 0;
@@ -346,6 +352,20 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
 
 #mapwrap { position: relative; overflow: hidden; min-height: 0; }
 #map { position: absolute; inset: 0; background: #0b141c; }
+
+/* Probe mode. Ticking the probe box adds this class to the map element so the
+   next click runs a drift and AIS run at that point instead of being ignored.
+   The class was set by the script and had no rule anywhere, so the cursor
+   never changed and there was nothing on screen saying the map was now armed:
+   the operator had a checkbox they were told about and no way to see that the
+   click they were about to make would do something different. A crosshair and
+   a tinted frame are the whole difference between "armed" and "not". */
+#map.probing { cursor: crosshair; }
+#map.probing::after {
+  content: "";
+  position: absolute; inset: 0; z-index: 450; pointer-events: none;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+}
 
 .map-hud {
   position: absolute; z-index: 500;
@@ -471,8 +491,14 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
 .chart .originpt { fill: var(--cyan); }
 
 /* ============================================================== evidence */
-/* The finding, as a survey form rather than a paragraph. */
-.facts {
+/* The finding, as a survey form rather than a paragraph.
+
+   The container class in the markup is `verdict-facts`, not `facts`. The grid
+   was only ever written against `.facts`, so the finding rendered as unstyled
+   block flow: four label/value pairs stacked full width with no columns, no
+   cell ground and no rule between them. It is the one element in the rail that
+   has to read as a form, so the selector takes both names. */
+.facts, .verdict-facts {
   display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
   background: var(--line-soft); border: 1px solid var(--line-soft);
   border-radius: var(--r); overflow: hidden;
@@ -626,11 +652,298 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
   border-color: var(--line) !important; color: var(--ink-2) !important;
   font-family: var(--mono); font-size: 9.5px;
 }
+/* ================================================== investigation panels
+   The mode-specific blocks. One rule each, grouped by the claim the panel
+   makes, because these are the parts of the console that have to be read
+   rather than glanced at.
+
+   Two conventions run through all of them. A band is always labelled in words,
+   never by colour alone, because HIGH / MEDIUM / LOW and a five-bar meter mean
+   different things and neither means probability. And anything that could not
+   be computed is rendered as an explicit "not evaluated" in the same place a
+   result would be, never omitted: an absent row reads as "this did not
+   matter", which is the opposite of what a missing input means. */
+
+#safefail, #uncertainty, #why, #sensitivity, #ablation, #calibration,
+#provenance, #events, #shape, #optical, #detector-meta,
+.uchain, .sensitivity, .ablation, .calibration, .provenance, .events,
+.case-list, .reliability, .missing, .body {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+/* ---- case index --------------------------------------------------------
+   The case list opens on the work that already exists. Each row leads with
+   the quality band, because a list of candidate counts invites reading an
+   empty case as a strong one, and the count of recorded objections sits in the
+   row so a lead is never shown without what has been said against it. */
+.case-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 8px;
+  align-items: center;
+  width: 100%; padding: 7px 9px; text-align: left;
+  background: var(--panel-2); border: 1px solid transparent;
+  border-left: 2px solid var(--line); border-radius: var(--r);
+  cursor: pointer; font: inherit; color: inherit;
+}
+.case-row:hover { background: var(--raised); }
+.case-row .cmain { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.case-row .cid { font-size: 11.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-row .ctop { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.case-row .cdt { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+
+/* ---- quality band ------------------------------------------------------
+   One component, used in the case header and on every case row, so the band
+   looks the same wherever it appears. The word is in the chip: the colour is
+   reinforcement, not the message. */
+.cband {
+  display: inline-flex; align-items: center;
+  font-size: 9px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 3px; white-space: nowrap;
+  background: var(--raised); color: var(--ink-3);
+  border: 1px solid var(--line);
+}
+.cband.has-state { border-style: dashed; }
+.cband.high    { color: var(--cyan);   border-color: color-mix(in srgb, var(--cyan) 40%, var(--line)); }
+.cband.medium  { color: var(--warn);   border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+.cband.low     { color: var(--bad);    border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+.cband.unrated { color: var(--ink-3); }
+
+/* ---- case state and quality ------------------------------------------- */
+.sf-state, .sf-band {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 7px 9px; border-radius: var(--r);
+  background: var(--panel-2); border: 1px solid var(--line-soft);
+  border-left: 2px solid var(--ink-3);
+}
+.sf-state b, .sf-band b { font-size: 12px; font-weight: 600; color: var(--ink); }
+.sf-label {
+  font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+  white-space: nowrap;
+}
+.sf-state.no-oil-detected  { border-left-color: var(--cyan); }
+.sf-state.insufficient-evidence { border-left-color: var(--warn); }
+.sf-state.no-reliable-vessel-candidate { border-left-color: var(--bad); }
+.sf-band.high   { border-left-color: var(--cyan); }
+.sf-band.medium { border-left-color: var(--warn); }
+.sf-band.low    { border-left-color: var(--bad); }
+.conclusion {
+  font-size: 10.5px; line-height: 1.5; color: var(--ink-2);
+  padding: 5px 0 5px 10px; border-left: 1px solid var(--line);
+}
+.weakest { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+.witem { display: flex; align-items: baseline; gap: 8px; font-size: 10.5px; }
+.witem .wn { flex: 1; color: var(--ink-2); }
+.witem .wv { font-family: var(--mono); color: var(--ink-3); white-space: nowrap; }
+/* `level` is certainty, so the good end is cyan. */
+.witem.high .wn, .witem.high .wv { color: var(--cyan); }
+.witem.low  .wn, .witem.low  .wv { color: var(--bad); }
+
+/* ---- uncertainty chain -------------------------------------------------
+   One row per pipeline stage, each with its own bar. The bar is stage
+   CERTAINTY: full means this stage's inputs are in good order, empty means the
+   stage could not be run. So the good end is cyan, not the bad end, and the
+   level word sits beside the bar so the direction is never ambiguous. */
+.ustage {
+  padding: 6px 8px; border-radius: var(--r);
+  background: var(--panel-2); border-left: 2px solid var(--line);
+}
+.ustage.high   { border-left-color: var(--cyan); }
+.ustage.medium { border-left-color: var(--warn); }
+.ustage.low    { border-left-color: var(--bad); }
+/* A stage the pipeline never rated. Deliberately neutral rather than absent:
+   an unrated stage is a different fact from a stage that does not exist, and
+   it must be visible as its own thing rather than read as a missing row. */
+.ustage.unknown { border-left-color: var(--line); }
+.uh { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.uh .ul { font-size: 11px; color: var(--ink); }
+.uh .uv {
+  font-size: 8.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  padding: 2px 5px; border-radius: 3px; background: var(--raised); color: var(--ink-3);
+}
+.ustage.high   .uh .uv { color: var(--cyan); }
+.ustage.medium .uh .uv { color: var(--warn); }
+.ustage.low    .uh .uv { color: var(--bad); }
+.ubar { height: 3px; border-radius: 2px; background: var(--line); margin-top: 5px; overflow: hidden; }
+.ubar::after { content: ""; display: block; height: 100%; width: var(--u, 0%);
+               background: var(--ink-3); border-radius: 2px; }
+.uv-note { margin-top: 3px; font-size: 9.5px; line-height: 1.45; color: var(--ink-3); }
+
+/* ---- why this vessel, and why not ---------------------------------------
+   Two columns that are deliberately not symmetric. The supporting reasons get
+   the calm treatment and the objections get the loud one, because a list that
+   treats "supports" and "undermines" with the same weight is a list that gets
+   skimmed for the supporting reasons. */
+.why-head { display: flex; align-items: baseline; gap: 8px; }
+.why-head .rank { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
+.why-head .nm { flex: 1; font-size: 13px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.why-head .sc { font-family: var(--mono); font-size: 15px; color: var(--accent); }
+
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+         background: var(--line-soft); border: 1px solid var(--line-soft);
+         border-radius: var(--r); overflow: hidden; }
+.cell { background: var(--panel-2); padding: 7px 9px; }
+.cell .cl { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.cell .cv { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-top: 2px; }
+.cell .cs { font-family: var(--mono); font-size: 15px; color: var(--ink); line-height: 1.2; }
+.cell .cn { margin-top: 3px; font-size: 9.5px; line-height: 1.4; color: var(--ink-3); }
+.cell.high .cv { color: var(--cyan); }
+.cell.medium .cv { color: var(--warn); }
+.cell.low .cv { color: var(--bad); }
+.geom { padding: 4px 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+
+.why-col { display: flex; flex-direction: column; gap: 3px; }
+.col-h {
+  font-size: 9.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3); padding-bottom: 3px;
+}
+.col-h.good { color: var(--cyan); }
+.col-h.bad  { color: var(--bad); }
+.ev-item {
+  display: flex; gap: 7px; align-items: baseline;
+  padding: 4px 7px; border-radius: var(--r);
+  background: var(--panel-2); border-left: 2px solid var(--line);
+  font-size: 10.5px; line-height: 1.45;
+}
+.ev-item .cat {
+  flex: none; font-family: var(--mono); font-size: 8.5px; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--ink-3); min-width: 62px;
+}
+.ev-item .txt { flex: 1; color: var(--ink-2); }
+.ev-item.pos { border-left-color: var(--cyan); }
+.ev-item.pos .cat { color: var(--cyan); }
+.ev-item.neg { border-left-color: var(--bad); }
+.ev-item.neg .cat { color: var(--bad); }
+.ev-item.neg .txt { color: var(--ink); }
+.ev-item.meta-item { border-left-color: var(--line); }
+
+/* ---- sensitivity -------------------------------------------------------
+   A scenario that changes the top candidate and one that does not are marked
+   differently, and the scenario that could not be evaluated says so in the
+   same slot a result would occupy. The badge is text because "did the
+   ranking hold" is the finding, not a colour. */
+.scen { padding: 7px 9px; border-radius: var(--r);
+        background: var(--panel-2); border: 1px solid var(--line-soft); }
+.sh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sh .sl { font-size: 11.5px; font-weight: 600; color: var(--ink); }
+.badge {
+  flex: none; font-size: 8.5px; font-weight: 600; letter-spacing: .09em;
+  text-transform: uppercase; padding: 2px 5px; border-radius: 3px;
+  background: var(--raised); color: var(--ink-3);
+}
+.badge.hold { color: var(--cyan); background: color-mix(in srgb, var(--cyan) 14%, transparent); }
+.badge.flip { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+.badge.na   { color: var(--bad);  background: color-mix(in srgb, var(--bad) 14%, transparent); }
+
+/* One line per scenario inside a candidate's card. The evaluable and the
+   not-evaluable rows sit at the same indent, because a scenario that could
+   not be run still occupies a slot in the argument. */
+.scenarios { display: flex; flex-direction: column; margin-top: 5px; }
+.srow {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  padding: 3px 0 3px 9px; border-left: 1px solid var(--line);
+  font-size: 10px;
+}
+.srow .sn { flex: 1; color: var(--ink-2); }
+.srow .sv2 { font-family: var(--mono); color: var(--ink-3); white-space: nowrap; }
+.srow.na { border-left-style: dashed; }
+.srow.na .sn { color: var(--ink-3); }
+.srow.na .sv2 { color: var(--bad); letter-spacing: .05em; font-size: 9px; }
+.sorder { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; }
+.sorder li { display: flex; gap: 7px; align-items: baseline; font-size: 10.5px; }
+.sorder .m { font-family: var(--mono); color: var(--ink-3); min-width: 54px; }
+.sorder .n { flex: 1; color: var(--ink-2); overflow: hidden;
+             text-overflow: ellipsis; white-space: nowrap; }
+.sorder .s { font-family: var(--mono); color: var(--ink-3); }
+
+/* ---- ablation ladder --------------------------------------------------- */
+.rung {
+  display: grid; grid-template-columns: 18px 1fr auto; gap: 8px;
+  align-items: baseline; padding: 5px 8px; border-radius: var(--r);
+  background: var(--panel-2); border-left: 2px solid var(--line);
+}
+.rung .rid { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--ink-2); }
+.rung .rname { font-size: 10.5px; color: var(--ink-2); }
+.rung .rv { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); white-space: nowrap; }
+.rung .rv.na { color: var(--bad); letter-spacing: .06em; }
+.rung.na { border-left-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+
+/* ---- calibration ------------------------------------------------------- */
+.cal-status {
+  padding: 6px 9px; border-radius: var(--r); background: var(--panel-2);
+  border-left: 2px solid var(--bad);
+}
+.cal-status b { font-size: 11px; font-weight: 600; letter-spacing: .07em;
+                text-transform: uppercase; color: var(--bad); }
+.cal-status.ok { border-left-color: var(--cyan); }
+.cal-status.ok b { color: var(--cyan); }
+.cal-lbl { font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
+           color: var(--ink-3); margin-top: 3px; }
+.rel-row {
+  display: grid; grid-template-columns: 34px 1fr 1fr 34px; gap: 6px;
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-2);
+  padding: 2px 0;
+}
+.rel-row .rb, .rel-row .rn { color: var(--ink-3); }
+.rel-row .ro { text-align: right; }
+
+/* ---- provenance -------------------------------------------------------- */
+.missing { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line-soft); }
+.mitem { display: flex; gap: 8px; align-items: baseline; font-size: 10.5px; }
+.mitem .mk { font-family: var(--mono); color: var(--bad); flex: none; }
+.mitem .mw { color: var(--ink-3); }
+
+/* ---- event timeline ----------------------------------------------------
+   The kind tag is the whole point of this panel. A modelled origin hour and a
+   satellite acquisition are both times on the same axis, and without the tag
+   the first gets quoted as if it were the second. */
+.evt {
+  display: grid; grid-template-columns: 62px 1fr; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--line-soft);
+}
+.evt:last-child { border-bottom: none; }
+.evt .ek {
+  align-self: start; font-size: 8.5px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; text-align: center; padding: 2px 0;
+  border-radius: 3px; background: var(--raised); color: var(--ink-3);
+}
+.evt.observed   .ek { color: var(--cyan); }
+.evt.inferred   .ek { color: var(--warn); }
+.evt.attributed .ek { color: var(--accent); }
+.eb { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.eb .el { font-size: 11.5px; color: var(--ink); }
+.eb .et { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
+.eb .ed { margin-top: 2px; font-size: 10px; line-height: 1.45; color: var(--ink-3); }
+
+/* ---- optical and detector --------------------------------------------- */
+.optical-status {
+  padding: 6px 9px; border-radius: var(--r); background: var(--panel-2);
+  border-left: 2px solid var(--warn);
+}
+.optical-status b { font-size: 11px; font-weight: 600; letter-spacing: .07em;
+                    text-transform: uppercase; color: var(--warn); }
+.optical-status.ok  { border-left-color: var(--cyan); }
+.optical-status.ok b { color: var(--cyan); }
+.optical-status.bad { border-left-color: var(--bad); }
+.optical-status.bad b { color: var(--bad); }
+.shape, .optical, .detmeta { gap: 2px; }
+
+/* ---- vessel glyphs -----------------------------------------------------
+   A heading arrow rather than a dot, because the trajectory match is the whole
+   argument for a candidate and the heading is what an operator checks by eye
+   against the drift vector. A dead-reckoned fix is hollow and dashed-edged,
+   because a position inferred across a reporting gap is a different kind of
+   fact from a received one and must not look like it. */
+.vessel-glyph { background: none; border: none; }
+.vessel-glyph.lead { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--rank1) 55%, transparent)); }
+.vessel-glyph.dr { opacity: .8; }
 .vessel-label {
   background: transparent; border: none; color: var(--ink);
   font: 10px var(--mono); text-shadow: 0 1px 3px #000, 0 0 2px #000;
   white-space: nowrap;
 }
+
 .coverage-note {
   position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
   max-width: 46ch; padding: 8px 12px; z-index: 620;

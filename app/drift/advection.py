@@ -84,6 +84,97 @@ class EnsembleRun:
         ]
 
 
+@dataclass(frozen=True)
+class DriftScenario:
+    """One transparent, physically plausible drift assumption.
+
+    These are sensitivity scenarios, not claims that a single coefficient is
+    universally correct.  They make the assumptions that already existed in
+    configuration visible in every case result.
+    """
+
+    name: str
+    alpha_wind: float
+    deflection_deg: float
+    description: str
+
+
+def default_scenarios() -> Tuple[DriftScenario, ...]:
+    """Return the bounded set of assumptions used by the operational ensemble."""
+    alpha = float(config.ALPHA_WIND)
+    return (
+        DriftScenario("baseline", alpha, float(config.DEFLECTION_DEG),
+                      "Configured windage and deflection baseline."),
+        DriftScenario("lower_windage", alpha * (2.0 / 3.0), 0.0,
+                      "Lower wind contribution with no deflection."),
+        DriftScenario("higher_windage", alpha * (4.0 / 3.0), float(config.DEFLECTION_DEG),
+                      "Higher wind contribution under the same deflection assumption."),
+        DriftScenario("windage_with_leeway", alpha, float(config.DEFLECTION_DEG) * 2.0,
+                      "Baseline windage with stronger leeway deflection."),
+        DriftScenario("current_dominant", alpha * 0.5, 0.0,
+                      "Reduced windage, representing a current-dominant transport scenario."),
+    )
+
+
+def combine_runs(runs: Sequence[EnsembleRun], direction: str) -> EnsembleRun:
+    """Combine scenario members into one distribution without hiding scenarios."""
+    if not runs:
+        raise ValueError("at least one scenario run is required")
+    first = runs[0]
+    if any(run.n_steps != first.n_steps for run in runs):
+        raise ValueError("scenario runs must share a time grid")
+    lon = np.concatenate([run.lon for run in runs], axis=1)
+    lat = np.concatenate([run.lat for run in runs], axis=1)
+    spread = np.array([spread_radius_km(lon[i], lat[i]) for i in range(lon.shape[0])])
+    return EnsembleRun(
+        times=list(first.times), lon=lon, lat=lat, direction=direction,
+        spread_km=spread, mean_lon=np.median(lon, axis=1), mean_lat=np.median(lat, axis=1),
+        meta={
+            "ensemble_kind": "multi_scenario",
+            "n_particles": int(lon.shape[1]),
+            "scenarios": [
+                {"name": run.meta.get("scenario", "baseline"),
+                 "alpha_wind": run.meta.get("alpha_wind"),
+                 "deflection_deg": run.meta.get("deflection_deg"),
+                 "n_particles": run.meta.get("n_particles")}
+                for run in runs
+            ],
+            "metocean_source": first.meta.get("metocean_source"),
+            "metocean_synthetic": first.meta.get("metocean_synthetic"),
+            "dt_seconds": first.meta.get("dt_seconds"),
+        },
+    )
+
+
+def advect_scenarios(
+    lon0: np.ndarray,
+    lat0: np.ndarray,
+    t0,
+    hours: int,
+    field_src: MetoceanField,
+    direction: str,
+    scenarios: Optional[Sequence[DriftScenario]] = None,
+    seed: int = None,
+) -> Tuple[EnsembleRun, List[EnsembleRun]]:
+    """Run named assumptions while preserving the caller's particle budget."""
+    scenarios = tuple(default_scenarios() if scenarios is None else scenarios)
+    if not scenarios:
+        raise ValueError("at least one drift scenario is required")
+    indices = np.array_split(np.arange(len(lon0)), len(scenarios))
+    base_seed = config.RANDOM_SEED if seed is None else int(seed)
+    runs: List[EnsembleRun] = []
+    for index, scenario in zip(indices, scenarios):
+        if not len(index):
+            continue
+        run = advect(lon0[index], lat0[index], t0, hours, field_src, direction=direction,
+                     alpha=scenario.alpha_wind, deflection_deg=scenario.deflection_deg,
+                     seed=base_seed + len(runs))
+        run.meta["scenario"] = scenario.name
+        run.meta["scenario_description"] = scenario.description
+        runs.append(run)
+    return combine_runs(runs, direction), runs
+
+
 def seed_particles(
     ring: Optional[Sequence[Tuple[float, float]]],
     centroid: Tuple[float, float],

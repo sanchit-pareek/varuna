@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Varuna</title>
+<title>Varuna · Oil Spill Attribution Console</title>
 <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/static/style.css?v=__V__">
 <script>
@@ -26,24 +26,25 @@
         <path class="mk-wave" d="M4.5 24c2.7-2.3 5-2.3 7.7 0s5 2.3 7.7 0 5-2.3 7.3-.3"/>
         <path class="mk-drop" d="M16 5.5c2.9 3.6 4.4 6.2 4.4 8.1a4.4 4.4 0 0 1-8.8 0c0-1.9 1.5-4.5 4.4-8.1Z"/>
       </svg>
-      <span class="brand-text"><b>VARUNA</b></span>
+      <span class="brand-text"><b>VARUNA</b><i>attribution console</i></span>
     </a>
 
-    <nav class="mainnav" role="tablist" aria-label="Workspace">
-      <button class="navlink" role="tab" aria-selected="true"  data-view="investigate">Investigate</button>
-      <button class="navlink" role="tab" aria-selected="false" data-view="drift">Drift</button>
-      <button class="navlink" role="tab" aria-selected="false" data-view="vessels">Vessels</button>
-      <button class="navlink" role="tab" aria-selected="false" data-view="method">Method</button>
-      <button class="navlink" role="tab" aria-selected="false" data-view="data">Data</button>
+    <nav class="mainnav" role="tablist" aria-label="Investigation mode">
+      <button class="navlink" role="tab" aria-selected="true"  data-view="overview">Overview</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="detection">Detection</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="origin">Origin</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="attribution">Attribution</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="sensitivity">Sensitivity</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="provenance">Provenance</button>
     </nav>
 
     <div class="appbar-right">
       <div class="search">
         <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>
-        <input id="vsearch" type="search" placeholder="Search MMSI or vessel name" aria-label="Search vessels">
+        <input id="vsearch" type="search" placeholder="Search MMSI or vessel" aria-label="Search vessels">
       </div>
       <span class="clock" id="clock">--:--:-- UTC</span>
-      <button id="rail-l" class="iconbtn" title="Hide the scene rail" aria-label="Hide the scene rail" aria-pressed="false">
+      <button id="rail-l" class="iconbtn" title="Hide the case rail" aria-label="Hide the case rail" aria-pressed="false">
         <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M6 2.5v11"/></svg>
       </button>
       <button id="rail-r" class="iconbtn" title="Hide the evidence rail" aria-label="Hide the evidence rail" aria-pressed="false">
@@ -56,8 +57,13 @@
     </div>
   </header>
 
-  <!-- ======================================================== left rail -->
+  <!-- ========================================================= left rail -->
   <aside class="rail rail-l">
+    <section class="rail-block">
+      <h2>Cases</h2>
+      <div id="case-list" class="case-list"><p class="hint">Loading case index.</p></div>
+    </section>
+
     <section class="rail-block">
       <h2>Scenes</h2>
       <div id="scene-list" class="scene-list"></div>
@@ -75,7 +81,7 @@
       <button id="run" class="btn-primary">Run analysis</button>
       <label class="probe">
         <input type="checkbox" id="probe">
-        <span>Probe a point instead. Click the map to run drift and AIS anywhere. No detection.</span>
+        <span>Probe a point. Click the map to run drift and AIS anywhere. No detection.</span>
       </label>
     </section>
 
@@ -95,12 +101,13 @@
     </section>
   </aside>
 
-  <!-- =========================================================== centre -->
+  <!-- ============================================================ centre -->
   <main class="centre">
     <div class="centre-head">
       <div class="ch-title">
         <h1 id="inc-title">No run yet</h1>
         <span class="pill" id="inc-status">Idle</span>
+        <span class="cband" id="case-q"></span>
       </div>
       <p class="ch-meta" id="inc-meta">Pick a scene on the left and run the analysis.</p>
       <div class="ch-coords"><span id="inc-coords">-</span></div>
@@ -122,28 +129,11 @@
       <button id="play" class="tb-btn" aria-label="Play">▶</button>
       <button id="toEnd" class="tb-btn wide">Radar pass</button>
       <span class="t" id="tlabel">-</span>
-      <input type="range" id="slider" min="0" max="100" value="0" aria-label="Time">
+      <input type="range" id="slider" min="0" max="0" value="0" aria-label="Time">
       <span class="tb-legend">
         <i class="sw hind"></i>hindcast
         <i class="sw fore"></i>forecast
       </span>
-    </div>
-
-    <div class="strip">
-      <section class="card">
-        <h2>Pipeline <span class="count" id="trace-total"></span></h2>
-        <div id="trace" class="card-body"><p class="hint">Step timings appear here after a run.</p></div>
-      </section>
-
-      <section class="card">
-        <h2>Environmental conditions</h2>
-        <div id="metocean" class="card-body"><p class="hint">Loaded from the cached metocean cube on the next run.</p></div>
-      </section>
-
-      <section class="card">
-        <h2>Hindcast uncertainty</h2>
-        <div id="spreadchart" class="card-body"><p class="hint">Ensemble spread against hours before the radar pass.</p></div>
-      </section>
     </div>
   </main>
 
@@ -151,73 +141,133 @@
   <aside class="rail rail-r">
     <div id="notices"></div>
 
-    <!-- Investigate -->
-    <div class="view" data-view="investigate">
+    <!-- Overview: what happened and how far it can be trusted -->
+    <div class="view" data-view="overview">
       <section class="rail-block">
-        <h2>Slick overview <span class="count" id="verdict-time"></span></h2>
+        <h2>Finding <span class="count" id="verdict-time"></span></h2>
         <div id="verdict-card">
           <div id="verdict"><p class="hint">No run yet.</p></div>
         </div>
       </section>
 
       <section class="rail-block">
+        <h2>Case state and quality</h2>
+        <div id="safefail"></div>
+      </section>
+
+      <section class="rail-block">
+        <h2>Uncertainty chain</h2>
+        <div id="uncertainty" class="uchain"></div>
+      </section>
+
+      <section class="rail-block grow">
+        <h2>Event timeline</h2>
+        <div id="events" class="events"></div>
+      </section>
+    </div>
+
+    <!-- Detection: the slick, and the thing that drew it -->
+    <div class="view" data-view="detection" hidden>
+      <section class="rail-block grow">
         <h2>Detection <span class="count" id="det-method"></span></h2>
         <div id="detection"><p class="hint">No run yet. Pick a scene and run the analysis.</p></div>
       </section>
+      <section class="rail-block">
+        <h2>Slick shape</h2>
+        <div id="shape" class="shape"></div>
+      </section>
+      <section class="rail-block">
+        <h2>Optical corroboration</h2>
+        <div id="optical" class="optical"></div>
+      </section>
+      <section class="rail-block">
+        <h2>Detector provenance</h2>
+        <div id="detector-meta" class="detmeta"></div>
+      </section>
+    </div>
 
+    <!-- Origin: where it came from and what that rests on -->
+    <div class="view" data-view="origin" hidden>
+      <section class="rail-block grow">
+        <h2>Drift reconstruction</h2>
+        <div id="origin"><p class="hint">The hindcast has not run.</p></div>
+      </section>
+      <section class="rail-block">
+        <h2>Environmental conditions</h2>
+        <div id="metocean" class="card-body"><p class="hint">Loaded from the cached metocean cube on the next run.</p></div>
+      </section>
+      <section class="rail-block">
+        <h2>Hindcast uncertainty</h2>
+        <div id="spreadchart" class="card-body"><p class="hint">Ensemble spread against hours before the radar pass.</p></div>
+      </section>
+    </div>
+
+    <!-- Attribution: who is involved, and the case against each of them -->
+    <div class="view" data-view="attribution" hidden>
       <section class="rail-block grow">
         <h2>Potential sources <span class="count" id="susp-count"></span></h2>
         <div id="suspects"><p class="hint">Ranked likelihood for investigation. Not proof of discharge.</p></div>
       </section>
-
+      <section class="rail-block">
+        <h2>Why this vessel, and why not</h2>
+        <div id="why" class="why"></div>
+      </section>
+      <section class="rail-block">
+        <h2>All ranked vessels <span class="count" id="vessels-count"></span></h2>
+        <div id="vessel-list"><p class="hint">Run the analysis to reconstruct traffic around the origin.</p></div>
+      </section>
       <section class="rail-block">
         <h2>Evidence</h2>
         <div id="evidence" class="evidence"></div>
       </section>
     </div>
 
-    <!-- Drift -->
-    <div class="view" data-view="drift" hidden>
+    <!-- Sensitivity: how fragile is the ranking -->
+    <div class="view" data-view="sensitivity" hidden>
       <section class="rail-block grow">
-        <h2>Drift reconstruction</h2>
-        <div id="origin"><p class="hint">The hindcast has not run.</p></div>
+        <h2>Counterfactual scenarios</h2>
+        <div id="sensitivity" class="sensitivity"></div>
+      </section>
+      <section class="rail-block">
+        <h2>Ablation ladder</h2>
+        <div id="ablation" class="ablation"></div>
+      </section>
+      <section class="rail-block">
+        <h2>Score calibration</h2>
+        <div id="calibration" class="calibration"></div>
+      </section>
+      <section class="rail-block">
+        <h2>Pipeline <span class="count" id="trace-total"></span></h2>
+        <div id="trace" class="card-body"><p class="hint">Step timings appear here after a run.</p></div>
       </section>
     </div>
 
-    <!-- Vessels -->
-    <div class="view" data-view="vessels" hidden>
+    <!-- Provenance: the method and the audit -->
+    <div class="view" data-view="provenance" hidden>
       <section class="rail-block grow">
-        <h2>Ranked vessels <span class="count" id="vessels-count"></span></h2>
-        <div id="vessel-list"><p class="hint">Run the analysis to reconstruct traffic around the origin.</p></div>
+        <h2>Case provenance</h2>
+        <div id="provenance" class="provenance"></div>
       </section>
-    </div>
-
-    <!-- Method -->
-    <div class="view" data-view="method" hidden>
-      <section class="rail-block grow">
+      <section class="rail-block">
         <h2>Scoring model</h2>
         <div id="weights"><p class="hint">loading</p></div>
+      </section>
+      <section class="rail-block">
+        <h2>Scene</h2>
+        <div id="scene-info" class="hint"></div>
+      </section>
+      <section class="rail-block">
+        <h2>System</h2>
+        <div id="sysinfo"></div>
       </section>
       <section class="rail-block">
         <h2>Export</h2>
         <div class="btnrow">
           <button id="ex-json" disabled>Job JSON</button>
           <button id="ex-geo" disabled>GeoJSON</button>
-          <button id="ex-note" disabled>Attribution note</button>
+          <button id="ex-note" disabled>Case report</button>
         </div>
         <p class="hint">Every number on this screen comes from the job document.</p>
-      </section>
-    </div>
-
-    <!-- Data -->
-    <div class="view" data-view="data" hidden>
-      <section class="rail-block">
-        <h2>Scene provenance</h2>
-        <div id="scene-info" class="hint"></div>
-      </section>
-      <section class="rail-block grow">
-        <h2>System</h2>
-        <div id="sysinfo"></div>
       </section>
     </div>
   </aside>

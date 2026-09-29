@@ -14,7 +14,7 @@ The whole thing runs on one laptop with the network unplugged. No Docker, no
 cloud service, no login at run time, no CUDA requirement.
 
 ```
-126 tests passing  ·  IoU_oil 0.889 on the Zenodo validation tiles  ·  full run 30 to 45 s on CPU
+167 tests, 161 passing  ·  IoU_oil 0.889 on the Zenodo validation tiles  ·  full run 30 to 45 s on CPU
 ```
 
 ---
@@ -42,11 +42,13 @@ cloud service, no login at run time, no CUDA requirement.
 
 ## The console
 
-Three rails over one run. The left rail picks the scene and holds the run
-parameters, the centre is the chart plus the time axis and the three cards that
-say how the run went, and the right rail is the evidence. The header switches
-the right rail between five views of the same job document: Investigate, Drift,
-Vessels, Method and Data.
+A map-first console over one run. The map is the working surface and the run
+parameters sit in the left rail; the header switches the workspace between six
+modes of the same job document: Overview, Detection, Origin, Attribution,
+Sensitivity and Provenance.
+
+> The screenshots below were taken on the earlier three-rail layout. The mode
+> names and the deep links in this file describe the current console.
 
 ### Investigate
 
@@ -220,14 +222,15 @@ exported with the Job JSON button.
 
 Everything outside the required block in [requirements.txt](requirements.txt) is
 genuinely optional. The app starts, serves the console and runs the full
-pipeline without any of it, and states in the Data view what it lost.
+pipeline without any of it, and the Provenance mode plus `/api/health` state
+exactly what it lost.
 
 ---
 
 ## Quick start
 
 ```bash
-git clone https://github.com/S-T-A-RNalin1/varuna.git
+git clone https://github.com/sanket-singh-sameer/varuna.git
 cd varuna
 python -m venv .venv
 ```
@@ -289,10 +292,14 @@ python scripts/hf_sync.py pull-model
 A finished run is a case, and a case is linkable:
 
 ```
-http://127.0.0.1:8000/#job=<job_id>&view=vessels
+http://127.0.0.1:8000/#job=<job_id>&view=attribution
 ```
 
-The fragment reopens a stored job at a given view without recomputing it.
+The fragment reopens a stored job at a given mode without recomputing it. Valid
+`view` values are `overview`, `detection`, `origin`, `attribution`,
+`sensitivity` and `provenance`. An unrecognised name falls back to `overview`
+rather than opening a blank screen, so a renamed or stale link still shows
+something.
 
 ---
 
@@ -490,7 +497,7 @@ app/
   jobs/store.py      job documents, the step trace, live progress, retention
   static/            index.html, app.js, style.css, vendor/leaflet
 scripts/             one-off data preparation; all network access lives here
-tests/               126 tests, including a network-blocked end to end run
+tests/               167 tests, including a network-blocked end to end run
 ```
 
 ---
@@ -511,8 +518,18 @@ tests/               126 tests, including a network-blocked end to end run
 | GET | `/api/jobs/{id}` | the full job document |
 | GET | `/api/jobs/{id}/progress` | which step a run is in, while it is still running |
 | GET | `/api/jobs/{id}/geojson` | every layer as one FeatureCollection |
-| GET | `/api/report/{id}` | Maritime Pollution Attribution Note, HTML |
+| GET | `/api/report/{id}` | the case report, seven sections, HTML |
+| GET | `/api/report/{id}/text` | the same seven sections as `text/plain`, greppable and diffable |
 | GET | `/api/report/{id}/pdf` | same as PDF, only if reportlab is installed |
+| GET | `/api/cases` | every stored case with its quality band and safe-fail state |
+| GET | `/api/cases/{id}` | one case header: what was run, how far it got |
+| GET | `/api/cases/{id}/uncertainty` | the uncertainty chain, stage by stage |
+| GET | `/api/cases/{id}/sensitivity` | per-candidate counterfactuals, including the ones that could not be run |
+| GET | `/api/cases/{id}/ablation` | which pipeline stage carries the ranking, 404 on an older case |
+| GET | `/api/cases/{id}/calibration` | whether the score is calibrated, and if not, why not |
+| GET | `/api/cases/{id}/evidence` | per-candidate evidence and its counter-evidence, grouped |
+| GET | `/api/cases/{id}/timeline` | events tagged observed, inferred or attributed |
+| GET | `/api/cases/{id}/chain` | the three claim layers kept apart |
 | GET | `/api/ais/track/{mmsi}` | one reconstructed track |
 | GET | `/api/ais/window` | every vessel in a box and window |
 | GET | `/` | the console shell, uncached, with content-addressed asset URLs |
@@ -525,7 +542,16 @@ tests/               126 tests, including a network-blocked end to end run
 python -m pytest tests -q
 ```
 
-126 tests. The ones that carry weight:
+167 tests, of which 161 pass on a fully bootstrapped machine. The exact passed
+count depends on your optional extras, because the suite skips rather than
+fails when they are absent:
+
+| Skipped when | Tests | Why |
+| --- | --- | --- |
+| `torch` not installed | 2 | U-Net training and checkpoint path |
+| no cached land mask | 4 | `scripts/fetch_land_mask.py` has not been run |
+
+The ones that carry weight:
 
 - `test_advection`: 1 m/s for one hour is 3.6 km east; a backward run undoes a
   forward run; wind contributes exactly 3 percent of its speed; the origin rule

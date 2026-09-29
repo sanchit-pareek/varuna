@@ -133,14 +133,55 @@ def listing(limit: int = 50) -> List[Dict[str, Any]]:
             doc = json.loads(p.read_text(encoding="utf-8"))
         except Exception:
             continue
-        out.append({
-            "job_id": doc.get("job_id", p.stem),
-            "scene_id": (doc.get("input") or {}).get("scene_id"),
-            "created": doc.get("created"),
-            "oil_polygons": len(doc.get("detection", {}).get("polygons", [])),
-            "suspects": len(doc.get("attribution", {}).get("suspects", [])),
-            "status": doc.get("status", "unknown"),
-        })
+        out.append(_summarise(doc, p.stem))
+    return out
+
+
+def _summarise(doc: Dict[str, Any], stem: str = None) -> Dict[str, Any]:
+    """The one-line view of a case, with the parts an operator triages on.
+
+    Deliberately carries the case quality band and the safe-fail state. A job
+    list that shows only "N suspects" invites reading a case with no defensible
+    candidate as a case with a strong lead.
+    """
+    detection = doc.get("detection") or {}
+    attribution = doc.get("attribution") or {}
+    quality = doc.get("case_quality") or {}
+    suspects = attribution.get("suspects") or []
+    top = suspects[0] if suspects else None
+    return {
+        "job_id": doc.get("job_id", stem),
+        "scene_id": (doc.get("input") or {}).get("scene_id"),
+        "created": doc.get("created"),
+        "oil_polygons": len(detection.get("polygons") or []),
+        "suspects": len(suspects),
+        "status": doc.get("status", "unknown"),
+        "case_quality": quality.get("overall"),
+        "safe_fail_state": ((quality.get("safe_fail") or {}).get("state")),
+        "detector": ((detection.get("metrics") or {}).get("detector_metadata") or {}).get("name")
+        or (detection.get("metrics") or {}).get("detector"),
+        "case_hash": (doc.get("provenance") or {}).get("case_hash"),
+        "top_candidate": None if top is None else {
+            "mmsi": top.get("mmsi"),
+            "name": top.get("name"),
+            "score": top.get("score"),
+            "counter_evidence_count": top.get("counter_evidence_count", 0),
+        },
+        "warnings": doc.get("warnings") or [],
+    }
+
+
+def case_index(limit: int = 50) -> List[Dict[str, Any]]:
+    """Every stored case, most recent first, for the landing and history views."""
+    out: List[Dict[str, Any]] = []
+    files = sorted(Path(config.JOBS_DIR).glob("*.json"),
+                   key=lambda p: p.stat().st_mtime, reverse=True)
+    for p in files[:limit]:
+        try:
+            doc = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        out.append(_summarise(doc, p.stem))
     return out
 
 
