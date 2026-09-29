@@ -1,0 +1,30 @@
+{
+  "scene": "santa_barbara_seeps",
+  "status": "ok",
+  "url": "/data/optical/santa_barbara_seeps.png",
+  "bounds": [
+    [
+      34.270329,
+      -119.996664
+    ],
+    [
+      34.479732,
+      -119.744111
+    ]
+  ],
+  "size": [
+    1600,
+    1600
+  ],
+  "decimation": 1,
+  "item_id": "S2B_MSIL2A_20230829T183929_R070_T11SKU_20240821T160323",
+  "acquired": "2023-08-29T18:39:29.024000Z",
+  "sar_acquired": "2023-08-29T01:59:10.443231Z",
+  "offset_hours": 16.67,
+  "offset_label": "17 h after the radar pass",
+  "cloud_percent": 0.0,
+  "reported_cloud_percent": 0.052754,
+  "collection": "sentinel-2-l2a",
+  "license": "Contains modified Copernicus Sentinel data. Sentinel-2 L2A hosted by Microsoft Planetary Computer, CC BY 4.0.",
+  "caveat": "Optical context only. Sentinel-2 did not observe this water at the radar acquisition time, so it is not evidence of the slick and no detection is run on it."
+}

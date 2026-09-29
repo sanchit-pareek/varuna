@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TideTrace</title>
+<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="/static/style.css?v=__V__">
+<script>
+  /* Set the theme before first paint, so a reload never flashes the wrong one. */
+  try {
+    var t = localStorage.getItem("tidetrace-theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch (e) { /* private mode: fall through to the dark default */ }
+</script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============================================================ app bar -->
+  <header class="appbar">
+    <a class="brand" href="/" aria-label="TideTrace home">
+      <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="14.5" class="mk-ring"/>
+        <path class="mk-wave" d="M3.5 19c3-2.6 5.5-2.6 8.5 0s5.5 2.6 8.5 0 5.5-2.6 8-.4"/>
+        <path class="mk-wave" d="M4.5 24c2.7-2.3 5-2.3 7.7 0s5 2.3 7.7 0 5-2.3 7.3-.3"/>
+        <path class="mk-drop" d="M16 5.5c2.9 3.6 4.4 6.2 4.4 8.1a4.4 4.4 0 0 1-8.8 0c0-1.9 1.5-4.5 4.4-8.1Z"/>
+      </svg>
+      <span class="brand-text"><b>TIDETRACE</b></span>
+    </a>
+
+    <nav class="mainnav" role="tablist" aria-label="Workspace">
+      <button class="navlink" role="tab" aria-selected="true"  data-view="investigate">Investigate</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="drift">Drift</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="vessels">Vessels</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="method">Method</button>
+      <button class="navlink" role="tab" aria-selected="false" data-view="data">Data</button>
+    </nav>
+
+    <div class="appbar-right">
+      <div class="search">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="M11 11l4 4"/></svg>
+        <input id="vsearch" type="search" placeholder="Search MMSI or vessel name" aria-label="Search vessels">
+      </div>
+      <span class="clock" id="clock">--:--:-- UTC</span>
+      <button id="rail-l" class="iconbtn" title="Hide the scene rail" aria-label="Hide the scene rail" aria-pressed="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M6 2.5v11"/></svg>
+      </button>
+      <button id="rail-r" class="iconbtn" title="Hide the evidence rail" aria-label="Hide the evidence rail" aria-pressed="false">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M10 2.5v11"/></svg>
+      </button>
+      <button id="theme" class="iconbtn" title="Switch to light theme" aria-label="Switch theme">
+        <svg class="ic-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 10.2A6 6 0 0 1 5.8 2.5a6 6 0 1 0 7.7 7.7Z"/></svg>
+        <svg class="ic-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3.2"/><path d="M8 .8v2M8 13.2v2M.8 8h2M13.2 8h2M2.9 2.9l1.4 1.4M11.7 11.7l1.4 1.4M13.1 2.9l-1.4 1.4M4.3 11.7l-1.4 1.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ======================================================== left rail -->
+  <aside class="rail rail-l">
+    <section class="rail-block">
+      <h2>Scenes</h2>
+      <div id="scene-list" class="scene-list"></div>
+      <select id="scene" class="sr-only" aria-label="Scene"></select>
+    </section>
+
+    <section class="rail-block">
+      <h2>Run parameters</h2>
+      <div class="grid2">
+        <label class="field">Hindcast h<input type="number" id="hind" value="48" min="6" max="96" step="1"></label>
+        <label class="field">Forecast h<input type="number" id="fore" value="36" min="6" max="96" step="1"></label>
+        <label class="field">Search km<input type="number" id="radius" value="10" min="1" max="60" step="1"></label>
+        <label class="field">Window h<input type="number" id="window" value="3" min="0.5" max="24" step="0.5"></label>
+      </div>
+      <button id="run" class="btn-primary">Run analysis</button>
+      <label class="probe">
+        <input type="checkbox" id="probe">
+        <span>Probe a point instead. Click the map to run drift and AIS anywhere. No detection.</span>
+      </label>
+    </section>
+
+    <section class="rail-block">
+      <h2>Run summary</h2>
+      <div id="quickstats" class="stats">
+        <div class="stat"><span class="sv" id="qs-polys">-</span><span class="sl">Oil polygons</span></div>
+        <div class="stat"><span class="sv" id="qs-area">-</span><span class="sl">Total area km²</span></div>
+        <div class="stat"><span class="sv" id="qs-vessels">-</span><span class="sl">Vessels scored</span></div>
+        <div class="stat"><span class="sv" id="qs-age">-</span><span class="sl">Age h, drift proxy</span></div>
+      </div>
+    </section>
+
+    <section class="rail-block grow">
+      <h2>Data sources</h2>
+      <div id="sources" class="sources"></div>
+    </section>
+  </aside>
+
+  <!-- =========================================================== centre -->
+  <main class="centre">
+    <div class="centre-head">
+      <div class="ch-title">
+        <h1 id="inc-title">No run yet</h1>
+        <span class="pill" id="inc-status">Idle</span>
+      </div>
+      <p class="ch-meta" id="inc-meta">Pick a scene on the left and run the analysis.</p>
+      <div class="ch-coords"><span id="inc-coords">-</span></div>
+    </div>
+
+    <div id="mapwrap">
+      <div id="map"></div>
+
+      <details class="mappanel" id="legend" open>
+        <summary>Layers</summary>
+        <div class="layers" id="layers"></div>
+      </details>
+
+      <div class="map-hud" id="readout">lat --.----&nbsp; lon ---.----</div>
+      <div id="busy"><div class="spinner"></div><span id="busytext">Running analysis</span></div>
+    </div>
+
+    <div id="timebar">
+      <button id="play" class="tb-btn" aria-label="Play">▶</button>
+      <button id="toEnd" class="tb-btn wide">Radar pass</button>
+      <span class="t" id="tlabel">-</span>
+      <input type="range" id="slider" min="0" max="100" value="0" aria-label="Time">
+      <span class="tb-legend">
+        <i class="sw hind"></i>hindcast
+        <i class="sw fore"></i>forecast
+      </span>
+    </div>
+
+    <div class="strip">
+      <section class="card">
+        <h2>Pipeline <span class="count" id="trace-total"></span></h2>
+        <div id="trace" class="card-body"><p class="hint">Step timings appear here after a run.</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Environmental conditions</h2>
+        <div id="metocean" class="card-body"><p class="hint">Loaded from the cached metocean cube on the next run.</p></div>
+      </section>
+
+      <section class="card">
+        <h2>Hindcast uncertainty</h2>
+        <div id="spreadchart" class="card-body"><p class="hint">Ensemble spread against hours before the radar pass.</p></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ======================================================== right rail -->
+  <aside class="rail rail-r">
+    <div id="notices"></div>
+
+    <!-- Investigate -->
+    <div class="view" data-view="investigate">
+      <section class="rail-block">
+        <h2>Slick overview <span class="count" id="verdict-time"></span></h2>
+        <div id="verdict-card">
+          <div id="verdict"><p class="hint">No run yet.</p></div>
+        </div>
+      </section>
+
+      <section class="rail-block">
+        <h2>Detection <span class="count" id="det-method"></span></h2>
+        <div id="detection"><p class="hint">No run yet. Pick a scene and run the analysis.</p></div>
+      </section>
+
+      <section class="rail-block grow">
+        <h2>Potential sources <span class="count" id="susp-count"></span></h2>
+        <div id="suspects"><p class="hint">Ranked likelihood for investigation. Not proof of discharge.</p></div>
+      </section>
+
+      <section class="rail-block">
+        <h2>Evidence</h2>
+        <div id="evidence" class="evidence"></div>
+      </section>
+    </div>
+
+    <!-- Drift -->
+    <div class="view" data-view="drift" hidden>
+      <section class="rail-block grow">
+        <h2>Drift reconstruction</h2>
+        <div id="origin"><p class="hint">The hindcast has not run.</p></div>
+      </section>
+    </div>
+
+    <!-- Vessels -->
+    <div class="view" data-view="vessels" hidden>
+      <section class="rail-block grow">
+        <h2>Ranked vessels <span class="count" id="vessels-count"></span></h2>
+        <div id="vessel-list"><p class="hint">Run the analysis to reconstruct traffic around the origin.</p></div>
+      </section>
+    </div>
+
+    <!-- Method -->
+    <div class="view" data-view="method" hidden>
+      <section class="rail-block grow">
+        <h2>Scoring model</h2>
+        <div id="weights"><p class="hint">loading</p></div>
+      </section>
+      <section class="rail-block">
+        <h2>Export</h2>
+        <div class="btnrow">
+          <button id="ex-json" disabled>Job JSON</button>
+          <button id="ex-geo" disabled>GeoJSON</button>
+          <button id="ex-note" disabled>Attribution note</button>
+        </div>
+        <p class="hint">Every number on this screen comes from the job document.</p>
+      </section>
+    </div>
+
+    <!-- Data -->
+    <div class="view" data-view="data" hidden>
+      <section class="rail-block">
+        <h2>Scene provenance</h2>
+        <div id="scene-info" class="hint"></div>
+      </section>
+      <section class="rail-block grow">
+        <h2>System</h2>
+        <div id="sysinfo"></div>
+      </section>
+    </div>
+  </aside>
+
+</div>
+
+<script src="/static/vendor/leaflet/leaflet.js"></script>
+<script src="/static/app.js?v=__V__"></script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+{
+  "note": "Ground truth of the simulation. Never read by detection, drift or scoring.",
+  "generated": "2026-09-02T19:50:26.067305+00:00",
+  "seed": 825247513,
+  "bbox": [
+    71.53097,
+    18.98097,
+    71.66903,
+    19.11903
+  ],
+  "t_start": "2026-08-31T13:50:15",
+  "t_end": "2026-09-03T13:50:15",
+  "origin_used": {
+    "lon": 71.55718,
+    "lat": 19.11689,
+    "t": "2026-09-02T09:50:15+00:00"
+  },
+  "vessels": [
+    {
+      "mmsi": 667337719,
+      "name": "MT CURRENT VOYAGER",
+      "bucket": "crude_oil_tanker",
+      "ais_type": 84,
+      "role": "scenario_transit",
+      "speed_kn": 11.61,
+      "gap_minutes": 41.1
+    },
+    {
+      "mmsi": 232693458,
+      "name": "FV NORTHERN LEADER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "distractor_close_wrong_type",
+      "speed_kn": 3.24,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 257679319,
+      "name": "MT SEAWARD GLORY",
+      "bucket": "tanker",
+      "ais_type": 80,
+      "role": "distractor_mid_range_tanker",
+      "speed_kn": 10.6,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 244682875,
+      "name": "MV SILVER LEADER",
+      "bucket": "bulk_cargo",
+      "ais_type": 70,
+      "role": "distractor_far_cargo",
+      "speed_kn": 10.08,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 566951648,
+      "name": "MV CASCADE VOYAGER",
+      "bucket": "cargo",
+      "ais_type": 79,
+      "role": "background",
+      "speed_kn": 12.09,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 273701690,
+      "name": "FV GALLANT VOYAGER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 3.04,
+      "gap_minutes": 43.2
+    },
+    {
+      "mmsi": 271434372,
+      "name": "MV MARINER CREST",
+      "bucket": "container",
+      "ais_type": 71,
+      "role": "background",
+      "speed_kn": 14.29,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 352701826,
+      "name": "MT SOUTHERN WAVE",
+      "bucket": "chemical_tanker",
+      "ais_type": 81,
+      "role": "background",
+      "speed_kn": 11.73,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 431885352,
+      "name": "MV ODYSSEY STAR",
+      "bucket": "container",
+      "ais_type": 71,
+      "role": "background",
+      "speed_kn": 17.78,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 667656060,
+      "name": "MV BEACON LEADER",
+      "bucket": "cargo",
+      "ais_type": 79,
+      "role": "background",
+      "speed_kn": 12.86,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 574446978,
+      "name": "FV SEAWARD TRADER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 4.47,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 273242548,
+      "name": "FV SOUTHERN WAVE",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 4.6,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 255347015,
+      "name": "FV CURRENT VOYAGER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 5.36,
+      "gap_minutes": 64.6
+    },
+    {
+      "mmsi": 413186736,
+      "name": "MV GALLANT EXPRESS",
+      "bucket": "container",
+      "ais_type": 71,
+      "role": "background",
+      "speed_kn": 18.44,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 566962776,
+      "name": "MV SOUTHERN EXPRESS",
+      "bucket": "cargo",
+      "ais_type": 79,
+      "role": "background",
+      "speed_kn": 11.14,
+      "gap_minutes": 66.2
+    },
+    {
+      "mmsi": 440791287,
+      "name": "MV GALLANT PEARL",
+      "bucket": "passenger",
+      "ais_type": 60,
+      "role": "background",
+      "speed_kn": 19.66,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 255962555,
+      "name": "MT SAPPHIRE STAR",
+      "bucket": "crude_oil_tanker",
+      "ais_type": 84,
+      "role": "background",
+      "speed_kn": 10.07,
+      "gap_minutes": 83.7
+    },
+    {
+      "mmsi": 356552806,
+      "name": "MV HARBOUR CREST",
+      "bucket": "bulk_cargo",
+      "ais_type": 70,
+      "role": "background",
+      "speed_kn": 11.33,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 351424083,
+      "name": "MV BEACON PEARL",
+      "bucket": "cargo",
+      "ais_type": 79,
+      "role": "background",
+      "speed_kn": 13.43,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 636838857,
+      "name": "MV LANTERN EXPRESS",
+      "bucket": "bulk_cargo",
+      "ais_type": 70,
+      "role": "background",
+      "speed_kn": 12.0,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 636929595,
+      "name": "MV AURORA CREST",
+      "bucket": "passenger",
+      "ais_type": 60,
+      "role": "background",
+      "speed_kn": 19.83,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 305827801,
+      "name": "FV SOUTHERN RANGER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 4.41,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 413526330,
+      "name": "MV PACIFIC GLORY",
+      "bucket": "container",
+      "ais_type": 71,
+      "role": "background",
+      "speed_kn": 14.1,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 352536186,
+      "name": "FV ORION LEADER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 5.45,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 353165154,
+      "name": "MV BEACON RANGER",
+      "bucket": "passenger",
+      "ais_type": 60,
+      "role": "background",
+      "speed_kn": 19.86,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 352361652,
+      "name": "MV ZEPHYR VOYAGER",
+      "bucket": "bulk_cargo",
+      "ais_type": 70,
+      "role": "background",
+      "speed_kn": 12.17,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 247130693,
+      "name": "MV SOUTHERN GLORY",
+      "bucket": "container",
+      "ais_type": 71,
+      "role": "background",
+      "speed_kn": 18.34,
+      "gap_minutes": 46.6
+    },
+    {
+      "mmsi": 353549454,
+      "name": "FV IRONWOOD CREST",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 6.28,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 305218740,
+      "name": "MT HORIZON PEARL",
+      "bucket": "chemical_tanker",
+      "ais_type": 81,
+      "role": "background",
+      "speed_kn": 11.0,
+      "gap_minutes": 78.0
+    },
+    {
+      "mmsi": 370166087,
+      "name": "MT MERIDIAN TRADER",
+      "bucket": "tanker",
+      "ais_type": 80,
+      "role": "background",
+      "speed_kn": 11.75,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 352487729,
+      "name": "FV ODYSSEY LEADER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 4.29,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 370327620,
+      "name": "MT CURRENT TRADER",
+      "bucket": "chemical_tanker",
+      "ais_type": 81,
+      "role": "background",
+      "speed_kn": 11.2,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 232688353,
+      "name": "MV SAPPHIRE VOYAGER",
+      "bucket": "tug",
+      "ais_type": 52,
+      "role": "background",
+      "speed_kn": 6.43,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 563469336,
+      "name": "FV MONSOON CARRIER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 5.33,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 412578093,
+      "name": "MV CASTLE SPIRIT",
+      "bucket": "container",
+      "ais_type": 71,
+      "role": "background",
+      "speed_kn": 14.08,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 374504751,
+      "name": "MT SILVER VOYAGER",
+      "bucket": "tanker",
+      "ais_type": 80,
+      "role": "background",
+      "speed_kn": 9.59,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 265689617,
+      "name": "MV CURRENT WAVE",
+      "bucket": "cargo",
+      "ais_type": 79,
+      "role": "background",
+      "speed_kn": 11.31,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 419100583,
+      "name": "MV ATLANTIC PEARL",
+      "bucket": "cargo",
+      "ais_type": 79,
+      "role": "background",
+      "speed_kn": 13.42,
+      "gap_minutes": 30.8
+    },
+    {
+      "mmsi": 636756314,
+      "name": "FV ODYSSEY CARRIER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 3.56,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 355556697,
+      "name": "MV PIONEER SPIRIT",
+      "bucket": "bulk_cargo",
+      "ais_type": 70,
+      "role": "background",
+      "speed_kn": 11.46,
+      "gap_minutes": 48.9
+    },
+    {
+      "mmsi": 249458344,
+      "name": "MV TEMPEST CARRIER",
+      "bucket": "tug",
+      "ais_type": 52,
+      "role": "background",
+      "speed_kn": 7.87,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 565438437,
+      "name": "MV PIONEER PEARL",
+      "bucket": "cargo",
+      "ais_type": 79,
+      "role": "background",
+      "speed_kn": 13.43,
+      "gap_minutes": 54.0
+    },
+    {
+      "mmsi": 413204282,
+      "name": "FV VANGUARD VOYAGER",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 3.72,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 356125155,
+      "name": "FV CURRENT WAVE",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 5.42,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 374630404,
+      "name": "MT MARINER VOYAGER",
+      "bucket": "crude_oil_tanker",
+      "ais_type": 84,
+      "role": "background",
+      "speed_kn": 12.42,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 255974875,
+      "name": "MV PACIFIC WAVE",
+      "bucket": "bulk_cargo",
+      "ais_type": 70,
+      "role": "background",
+      "speed_kn": 11.56,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 419312222,
+      "name": "FV CASCADE SPIRIT",
+      "bucket": "fishing",
+      "ais_type": 30,
+      "role": "background",
+      "speed_kn": 2.75,
+      "gap_minutes": null
+    },
+    {
+      "mmsi": 271775438,
+      "name": "MV ATLANTIC STAR",
+      "bucket": "bulk_cargo",
+      "ais_type": 70,
+      "role": "background",
+      "speed_kn": 10.88,
+      "gap_minutes": null
+    }
+  ],
+  "scenario_vessel_mmsi": 667337719,
+  "scenario_offset_km": 1.311
+}

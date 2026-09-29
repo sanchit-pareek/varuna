@@ -1,0 +1,30 @@
+{
+  "scene": "gom_mc20_chronic_slick",
+  "status": "ok",
+  "url": "/data/optical/gom_mc20_chronic_slick.png",
+  "bounds": [
+    [
+      28.835617,
+      -89.086792
+    ],
+    [
+      29.040577,
+      -88.853793
+    ]
+  ],
+  "size": [
+    1600,
+    1600
+  ],
+  "decimation": 1,
+  "item_id": "S2B_MSIL2A_20230919T162849_R083_T16RBT_20241025T134557",
+  "acquired": "2023-09-19T16:28:49.024000Z",
+  "sar_acquired": "2023-09-24T00:02:27.804136Z",
+  "offset_hours": -103.56,
+  "offset_label": "4.3 days before the radar pass",
+  "cloud_percent": 23.9,
+  "reported_cloud_percent": 2.771965,
+  "collection": "sentinel-2-l2a",
+  "license": "Contains modified Copernicus Sentinel data. Sentinel-2 L2A hosted by Microsoft Planetary Computer, CC BY 4.0.",
+  "caveat": "Optical context only. Sentinel-2 did not observe this water at the radar acquisition time, so it is not evidence of the slick and no detection is run on it."
+}

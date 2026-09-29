@@ -1,0 +1,662 @@
+/* TideTrace, Marine Pollution Intelligence
+   ---------------------------------------------------------------------------
+   A three-rail operations console: case list and controls left, the chart and
+   its time axis centre, the evidence for the current case right. The layout is
+   the argument. You read left to right from "which scene" through "what the
+   radar saw" to "which vessel, and on what grounds".
+
+   Amber is the only saturated colour and it means one thing throughout: this is
+   the thing under investigation. The slick is amber, the release zone is amber,
+   the lead vessel is amber. Cyan is its counterpart and always means forecast:
+   where something is going rather than where it has been. Everything else is
+   slate, so those two carry all the signal.
+
+   Numbers are set in mono and tabular everywhere. A measurement should never
+   move when it updates.
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: dark;
+
+  --bg:        #090f15;
+  --panel:     #0f1922;
+  --panel-2:   #14212c;
+  --raised:    #1a2936;
+  --line:      #1e2f3d;
+  --line-soft: #182734;
+
+  --ink:       #e6edf3;
+  --ink-2:     #9db1c2;
+  --ink-3:     #7e93a4;
+
+  --accent:    #e89550;   /* under investigation */
+  --accent-dim:#8a5a30;
+  --cyan:      #4fb8dd;   /* forecast */
+  --warn:      #d9a441;
+  --bad:       #cc5b4e;
+
+  /* map semantics, constant across themes: the chart is dark in both */
+  --oil:       #e89550;
+  --lookalike: #b9a05e;
+  --hind:      #e0b98d;
+  --sea:       #4fb8dd;
+  --fore:      #4fb8dd;
+  --rank1:     #e8734a;
+
+  --sans: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui,
+          -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", "SF Mono", ui-monospace,
+          Consolas, monospace;
+
+  --rail-l: 232px;
+  --rail-r: 316px;
+  --r: 6px;
+  --pad: 14px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg:        #eef2f5;
+  --panel:     #ffffff;
+  --panel-2:   #f5f8fa;
+  --raised:    #eaeff4;
+  --line:      #dae2ea;
+  --line-soft: #e6ecf1;
+
+  --ink:       #14212b;
+  --ink-2:     #445a6c;
+  /* Section labels, hints and idle nav all use ink-3 at 10-11px, so it has to
+     clear 4.5:1 rather than the 3:1 that large text would get away with. */
+  --ink-3:     #5a6e7e;
+
+  --accent:    #c2701f;
+  --accent-dim:#e3b48a;
+  --cyan:      #1f7fa5;
+  --warn:      #9a6a12;
+  --bad:       #b0402f;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.5 var(--sans);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.num, .kv .v, .sv, .suspect .sc, .step .ms, .fact-v, code, .mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: var(--rail-l) minmax(0, 1fr) var(--rail-r);
+  grid-template-rows: 52px minmax(0, 1fr);
+  height: 100vh;
+  gap: 1px;
+  background: var(--line);
+}
+
+/* =============================================================== app bar */
+.appbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 16px;
+  background: var(--panel);
+}
+
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; flex: none; }
+.brand .mark { width: 26px; height: 26px; flex: none; }
+.mk-ring { fill: none; stroke: var(--cyan); stroke-width: 1.4; opacity: .45; }
+.mk-wave { fill: none; stroke: var(--cyan); stroke-width: 1.6; stroke-linecap: round; }
+.mk-drop { fill: var(--accent); }
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-text b {
+  font-size: 13px; font-weight: 700; letter-spacing: .13em; color: var(--ink);
+}
+
+.mainnav { display: flex; gap: 2px; }
+.navlink {
+  appearance: none; background: none; border: none; cursor: pointer;
+  padding: 17px 12px 15px;
+  font: 600 11px/1 var(--sans);
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  border-bottom: 2px solid transparent;
+}
+.navlink:hover { color: var(--ink-2); }
+.navlink[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.appbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+.search { position: relative; display: flex; align-items: center; }
+.search svg {
+  position: absolute; left: 9px; width: 13px; height: 13px;
+  fill: none; stroke: var(--ink-3); stroke-width: 1.5; stroke-linecap: round;
+  pointer-events: none;
+}
+.search input {
+  width: 216px; padding: 6px 10px 6px 28px;
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r);
+  font: 12px var(--sans);
+}
+.search input::placeholder { color: var(--ink-3); }
+.search input:focus { outline: none; border-color: var(--accent); }
+
+.iconbtn {
+  display: grid; place-items: center;
+  width: 30px; height: 30px; padding: 0;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--r);
+  cursor: pointer;
+}
+.iconbtn svg { width: 15px; height: 15px; fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-linecap: round; }
+.iconbtn:hover { border-color: var(--ink-3); }
+.iconbtn:hover svg { stroke: var(--ink); }
+.ic-sun { display: none; }
+:root[data-theme="light"] .ic-moon { display: none; }
+:root[data-theme="light"] .ic-sun { display: block; }
+
+/* Wall clock, in the header rather than floating over the map where it sat on
+   top of the zoom control. */
+.clock {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: 11px; color: var(--ink-3); white-space: nowrap;
+}
+
+/* ================================================================= rails
+   Either rail folds away, because on a laptop the chart is the thing you want
+   the pixels for once a run has been read. The grid column goes to zero and the
+   map is told to re-measure. */
+#app.no-l { --rail-l: 0px; }
+#app.no-r { --rail-r: 0px; }
+#app.no-l .rail-l, #app.no-r .rail-r { border: none; }
+.iconbtn[aria-pressed="true"] { border-color: var(--accent); }
+.iconbtn[aria-pressed="true"] svg { stroke: var(--accent); }
+
+.rail {
+  background: var(--panel);
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.rail::-webkit-scrollbar, .card-body::-webkit-scrollbar,
+#suspects::-webkit-scrollbar, #trace::-webkit-scrollbar { width: 8px; }
+.rail::-webkit-scrollbar-thumb, .card-body::-webkit-scrollbar-thumb,
+#suspects::-webkit-scrollbar-thumb, #trace::-webkit-scrollbar-thumb {
+  background: var(--line); border-radius: 4px;
+}
+
+.rail-block { padding: 12px var(--pad); border-bottom: 1px solid var(--line-soft); }
+.rail-block.grow { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.rail-block.grow > div { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.rail-block:last-child { border-bottom: none; }
+
+.rail-block > h2, .card > h2 {
+  margin: 0 0 9px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  font: 600 10px/1 var(--sans);
+  letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.rail-block > h2 .count, .card > h2 .count {
+  font-family: var(--mono); font-weight: 400; letter-spacing: .03em;
+}
+
+.view { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+
+/* ---- scene list ---------------------------------------------------------
+   The scene picker is the case list: each row carries the two facts that
+   decide whether a run means anything: when the radar passed, and whether the
+   AIS underneath it is recorded or simulated. */
+.scene-list { display: flex; flex-direction: column; gap: 4px; }
+.scene-row {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 8px;
+  padding: 8px 10px;
+  border: 1px solid transparent; border-left: 2px solid var(--line);
+  border-radius: var(--r);
+  background: var(--panel-2);
+  cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+}
+.scene-row:hover { background: var(--raised); }
+.scene-row[aria-current="true"] { border-left-color: var(--accent); background: var(--raised); }
+.scene-row .nm {
+  font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.scene-row .dt { grid-column: 1 / -1; font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.scene-row .ais {
+  font-size: 9px; letter-spacing: .07em; text-transform: uppercase;
+  align-self: start; white-space: nowrap;
+  color: var(--ink-3);
+}
+.scene-row .ais.sim { font-style: italic; }
+
+/* ---- fields and controls ------------------------------------------------ */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+label.field {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+input[type=number], input[type=text], select {
+  width: 100%; padding: 6px 8px;
+  background: var(--bg); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r);
+  font: 12px var(--mono);
+}
+input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+button {
+  font: 12px var(--sans); cursor: pointer;
+  background: var(--raised); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 7px 11px;
+}
+button:hover:not(:disabled) { border-color: var(--ink-3); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-primary {
+  width: 100%; margin-top: 10px; padding: 9px;
+  font-weight: 600; font-size: 12px; letter-spacing: .04em;
+  color: #1a1109; background: var(--accent); border-color: var(--accent);
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-primary:disabled { background: var(--raised); color: var(--ink-3); border-color: var(--line); }
+:root[data-theme="light"] .btn-primary { color: #fff; }
+
+label.probe {
+  display: flex; gap: 7px; align-items: flex-start;
+  margin-top: 9px; font-size: 10.5px; line-height: 1.45; color: var(--ink-3);
+  cursor: pointer;
+}
+label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
+
+.btnrow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+/* ---- run summary -------------------------------------------------------- */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line-soft);
+         border: 1px solid var(--line-soft); border-radius: var(--r); overflow: hidden; }
+.stat { background: var(--panel-2); padding: 8px 10px; }
+.stat .sv { display: block; font-size: 16px; color: var(--ink); line-height: 1.2; }
+.stat .sl { display: block; margin-top: 2px; font-size: 9.5px; letter-spacing: .06em;
+            text-transform: uppercase; color: var(--ink-3); }
+
+.sources { display: flex; flex-direction: column; gap: 6px; }
+.src { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
+.src .nm { color: var(--ink-2); flex: 1; }
+.src .vl { font-family: var(--mono); font-size: 10.5px; color: var(--ink); }
+/* Only a source that is actually missing gets a colour, and it gets the one
+   colour that means "this is wrong". */
+.src.bad .nm, .src.bad .vl { color: var(--bad); }
+
+/* ================================================================ centre */
+.centre {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  background: var(--bg);
+  min-height: 0;
+  min-width: 0;
+}
+
+.centre-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 16px;
+  padding: 11px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.ch-title { display: flex; align-items: center; gap: 10px; }
+.ch-title h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); }
+.pill {
+  font-size: 9.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 3px;
+  background: var(--raised); color: var(--ink-3);
+}
+.pill.active { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+/* "Clean" is a finding, not a success. The word carries it; a green chip would
+   be the only green on the page and would read as a status light. */
+.pill.clean  { background: var(--raised); color: var(--ink-2); }
+.ch-meta { grid-column: 1; margin: 0; font-size: 11.5px; color: var(--ink-3); }
+.ch-coords {
+  grid-row: 1 / span 2; grid-column: 2;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-align: right;
+}
+
+#mapwrap { position: relative; overflow: hidden; min-height: 0; }
+#map { position: absolute; inset: 0; background: #0b141c; }
+
+.map-hud {
+  position: absolute; z-index: 500;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 5px 9px;
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-2);
+  pointer-events: none;
+}
+#clock   { right: 12px; top: 12px; }
+#readout { left: 12px; bottom: 12px; }
+.leaflet-bottom.leaflet-left { margin-bottom: 34px; }
+
+/* Layers panel, top-left over the chart, folded by a disclosure. */
+.mappanel {
+  position: absolute; left: 12px; top: 12px; z-index: 600;
+  width: 190px;
+  background: color-mix(in srgb, var(--panel) 95%, transparent);
+  border: 1px solid var(--line); border-radius: var(--r);
+  overflow: hidden;
+}
+.mappanel > summary {
+  list-style: none; cursor: pointer;
+  padding: 8px 10px;
+  font: 600 10px/1 var(--sans); letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.mappanel > summary::-webkit-details-marker { display: none; }
+.mappanel > summary::after { content: "▾"; font-size: 9px; }
+.mappanel[open] > summary { border-bottom: 1px solid var(--line-soft); }
+.mappanel[open] > summary::after { content: "▴"; }
+
+.layers { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 5px; }
+.layers label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: var(--ink-2); cursor: pointer;
+}
+.layers input { accent-color: var(--accent); flex: none; }
+.layers .key { width: 12px; height: 3px; border-radius: 2px; flex: none; margin-left: auto; }
+.layers .key.dash { height: 0; border-top: 2px dashed currentColor; }
+
+/* ---- time axis ---------------------------------------------------------- */
+#timebar {
+  display: none;
+  align-items: center; gap: 12px;
+  padding: 9px 16px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+#timebar.on { display: flex; }
+.tb-btn { padding: 5px 9px; min-width: 30px; font-family: var(--mono); }
+.tb-btn.wide { min-width: 0; font-family: var(--sans); }
+#timebar input[type=range] { flex: 1; accent-color: var(--accent); min-width: 80px; }
+#timebar .t {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: 11px; color: var(--ink); min-width: 152px;
+}
+.tb-legend { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--ink-3); }
+.tb-legend .sw { width: 14px; height: 0; border-top: 2px dashed currentColor; display: inline-block; }
+.tb-legend .sw.hind { color: var(--hind); }
+.tb-legend .sw.fore { color: var(--fore); }
+
+/* ---- bottom strip ------------------------------------------------------- */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+  height: 200px;
+  min-height: 0;
+}
+.card {
+  background: var(--panel); padding: 11px 14px;
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+}
+/* Each card scrolls on its own. The pipeline has twelve steps and the card is
+   two hundred pixels tall, so this is the difference between reading the run
+   and seeing the first six lines of it. */
+.card-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+
+/* ---- pipeline steps ----------------------------------------------------- */
+.step {
+  display: grid; grid-template-columns: 74px 1fr auto;
+  align-items: center; gap: 9px;
+  padding: 3px 0;
+}
+.step .n { font-family: var(--mono); font-size: 10px; letter-spacing: .03em; color: var(--ink-2); }
+.step .d {
+  height: 3px; border-radius: 2px; background: var(--line);
+  position: relative; overflow: hidden; text-indent: -9999px;
+}
+.step .d::after {
+  content: ""; position: absolute; inset: 0 auto 0 0;
+  width: var(--frac, 0%); background: var(--ink-3); border-radius: 2px;
+}
+.step .ms { font-size: 10px; color: var(--ink-3); min-width: 48px; text-align: right; }
+.step.warn .n { color: var(--warn); }
+.step.warn .d::after { background: var(--warn); }
+.step.info .n { color: var(--ink-3); }
+
+/* ---- environmental readouts --------------------------------------------- */
+.env { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.env-item { display: flex; align-items: center; gap: 9px; }
+.env-ic {
+  width: 26px; height: 26px; flex: none; border-radius: var(--r);
+  background: var(--panel-2); display: grid; place-items: center;
+}
+.env-ic svg { width: 14px; height: 14px; fill: none; stroke: var(--cyan); stroke-width: 1.5; stroke-linecap: round; }
+.env-v { font-family: var(--mono); font-size: 13px; color: var(--ink); line-height: 1.2; }
+.env-l { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+
+/* ---- spread chart ------------------------------------------------------- */
+.chart { width: 100%; height: 100%; display: block; }
+.chart .axis { stroke: var(--line); stroke-width: 1; }
+.chart .grid { stroke: var(--line-soft); stroke-width: 1; }
+.chart .tick { fill: var(--ink-3); font: 9px var(--mono); }
+.chart .area { fill: color-mix(in srgb, var(--accent) 18%, transparent); }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.chart .marker { stroke: var(--cyan); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.chart .mlabel { fill: var(--cyan); font: 9px var(--mono); }
+.chart .originpt { fill: var(--cyan); }
+
+/* ============================================================== evidence */
+/* The finding, as a survey form rather than a paragraph. */
+.facts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--line-soft); border: 1px solid var(--line-soft);
+  border-radius: var(--r); overflow: hidden;
+}
+.fact { background: var(--panel-2); padding: 7px 9px; }
+.fact-k { display: block; font-size: 9px; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3); }
+.fact-v { display: block; margin-top: 2px; font-size: 12px; color: var(--ink); overflow-wrap: anywhere; }
+
+.verdict-line { font-size: 15px; font-weight: 600; line-height: 1.3; margin-bottom: 9px; }
+.verdict-line .qty { font-family: var(--mono); color: var(--accent); }
+
+.kv { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
+.kv .k { color: var(--ink-3); font-size: 11px; }
+.kv .v { color: var(--ink); font-size: 11.5px; text-align: right; }
+
+.confbar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 5px; overflow: hidden; }
+.confbar > i { display: block; height: 100%; background: var(--accent); }
+
+.hint { color: var(--ink-3); font-size: 11px; line-height: 1.5; margin: 0; }
+.muted { color: var(--ink-3); }
+.small { font-size: 10.5px; }
+
+/* ---- drift reconstruction, as a typed timeline --------------------------
+   These five moments are a real sequence with real times attached, so a
+   vertical timeline is information rather than decoration. */
+.dtl { list-style: none; margin: 10px 0 0; padding: 0 0 0 16px; position: relative; }
+.dtl::before {
+  content: ""; position: absolute; left: 3px; top: 6px; bottom: 6px;
+  width: 1px; background: var(--line);
+}
+.dtl li { position: relative; padding: 0 0 12px; }
+.dtl li::before {
+  content: ""; position: absolute; left: -16px; top: 4px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--panel); border: 1.5px solid var(--ink-3);
+}
+.dtl li.origin::before { border-color: var(--accent); background: var(--accent); width: 9px; height: 9px; left: -17px; }
+.dtl li.fore::before { border-color: var(--cyan); }
+.dtl .lbl { font-size: 11.5px; color: var(--ink); }
+.dtl .tm { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+
+/* ---- ranked sources ------------------------------------------------------
+   The signature: one bar carrying two numbers. Solid to the ranked score,
+   a hairline continuing to where the evidence alone would have put it. The gap
+   is how much of the case rests on positions that were assumed rather than
+   received, which is exactly the thing an analyst must see before acting on a
+   name. */
+#suspects, #vessel-list { display: flex; flex-direction: column; }
+.suspect {
+  padding: 9px 10px;
+  border: 1px solid transparent; border-left: 2px solid var(--line);
+  border-radius: var(--r);
+  margin-bottom: 4px;
+  background: var(--panel-2);
+  cursor: pointer;
+}
+.suspect:hover { background: var(--raised); }
+.suspect.sel { background: var(--raised); border-left-color: var(--accent); }
+.suspect.r1 { border-left-color: var(--accent); }
+.suspect .top { display: flex; align-items: baseline; gap: 8px; }
+.suspect .rank { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); width: 18px; flex: none; }
+.suspect .nm {
+  flex: 1; font-size: 12px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.suspect .sc { font-size: 14px; color: var(--ink-2); }
+.suspect.r1 .sc { color: var(--accent); }
+.suspect .meta { font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+
+.bar { position: relative; height: 4px; background: var(--line); border-radius: 2px; margin-top: 7px; }
+.bar > i {
+  position: absolute; inset: 0 auto 0 0; display: block;
+  width: var(--score, 0%); background: var(--ink-3); border-radius: 2px;
+}
+.suspect.r1 .bar > i { background: var(--accent); }
+.bar > u {
+  position: absolute; top: -2px; bottom: -2px; left: var(--score, 0%);
+  width: max(1px, calc(var(--evidence, 0%) - var(--score, 0%)));
+  border: 1px solid var(--ink-3); border-left: none; border-radius: 0 2px 2px 0;
+  opacity: .55;
+}
+.bar[data-full="1"] > u { display: none; }
+
+.conf-note { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); margin-top: 4px; line-height: 1.45; }
+.conf-note b { color: var(--ink); font-weight: 500; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 6px; }
+.tag {
+  font-family: var(--mono); font-size: 9.5px; padding: 2px 5px;
+  border: 1px solid var(--line); border-radius: 3px;
+  color: var(--ink-2); background: var(--bg);
+}
+.tag.gap { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); color: var(--bad); }
+.tag.type { border-color: color-mix(in srgb, var(--cyan) 40%, var(--line)); color: var(--cyan); }
+
+.detail { margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--line-soft); display: none; }
+.suspect.sel .detail { display: block; }
+
+/* ---- evidence summary ---------------------------------------------------- */
+.evidence { display: flex; flex-direction: column; gap: 5px; }
+.ev-row { display: flex; align-items: baseline; gap: 8px; font-size: 11px; }
+.ev-row .k { color: var(--ink-2); flex: 1; }
+.ev-row .v { font-family: var(--mono); font-size: 11.5px; color: var(--ink); }
+
+/* ---- notices ------------------------------------------------------------- */
+#notices:empty { display: none; }
+#notices { padding: 10px var(--pad) 0; }
+.notice {
+  border-left: 2px solid var(--warn);
+  padding: 6px 0 6px 9px; margin: 0 0 8px;
+  font-size: 10.5px; line-height: 1.5; color: var(--ink-2);
+}
+.notice.bad { border-color: var(--bad); }
+.notice.ok  { border-color: var(--line); }
+
+/* ---- busy ---------------------------------------------------------------- */
+#busy {
+  position: absolute; inset: 0; z-index: 900;
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px;
+  color: var(--ink-2); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+}
+#busy.on { display: flex; }
+.spinner {
+  width: 24px; height: 24px;
+  border: 1.5px solid var(--line); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- leaflet chrome ------------------------------------------------------ */
+.leaflet-container { background: #0b141c; font-family: var(--sans); }
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--panel) 85%, transparent) !important;
+  color: var(--ink-3) !important; font-size: 9.5px !important;
+}
+.leaflet-control-attribution a { color: var(--ink-2) !important; }
+.leaflet-bar a {
+  background: color-mix(in srgb, var(--panel) 92%, transparent) !important;
+  color: var(--ink-2) !important; border-color: var(--line) !important;
+}
+.leaflet-bar a:hover { background: var(--raised) !important; color: var(--ink) !important; }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--panel-2); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r); box-shadow: none;
+}
+.leaflet-popup-content { font-size: 11px; margin: 9px 11px; }
+.leaflet-control-scale-line {
+  background: color-mix(in srgb, var(--panel) 85%, transparent) !important;
+  border-color: var(--line) !important; color: var(--ink-2) !important;
+  font-family: var(--mono); font-size: 9.5px;
+}
+.vessel-label {
+  background: transparent; border: none; color: var(--ink);
+  font: 10px var(--mono); text-shadow: 0 1px 3px #000, 0 0 2px #000;
+  white-space: nowrap;
+}
+.coverage-note {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  max-width: 46ch; padding: 8px 12px; z-index: 620;
+  border: 1px solid var(--line); border-left: 2px solid var(--warn);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  color: var(--ink-2); font-size: 10.5px; line-height: 1.45; text-align: center;
+  pointer-events: none;
+}
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* ---- narrower screens ---------------------------------------------------- */
+@media (max-width: 1500px) { :root { --rail-l: 208px; --rail-r: 290px; } }
+@media (max-width: 1280px) {
+  :root { --rail-l: 190px; --rail-r: 264px; }
+  .search input { width: 150px; }
+  .strip { height: 168px; }
+}
+@media (max-width: 1080px) {
+  #app { grid-template-columns: 1fr; grid-template-rows: 52px auto minmax(320px, 1fr) auto; }
+  .rail { max-height: 40vh; }
+  .mainnav { display: none; }
+  .strip { grid-template-columns: 1fr; height: auto; }
+}

@@ -1,0 +1,109 @@
+{
+  "generated": "2026-09-12T09:24:59.867983+00:00",
+  "scenes": [
+    {
+      "id": "gom_mc20_chronic_slick",
+      "title": "Gulf of Mexico, MC20 chronic discharge site",
+      "sar_path": "sar/gom_mc20_chronic_slick.tif",
+      "t_sat": "2023-09-24T00:02:27.804136Z",
+      "bounds": [
+        -89.086792,
+        28.835617,
+        -88.853793,
+        29.040577
+      ],
+      "centroid": [
+        -88.970125,
+        28.938091
+      ],
+      "crs": "EPSG:32616",
+      "mask_path": null,
+      "thumbnail": null,
+      "backdrop": null,
+      "source": "Sentinel-1 IW GRD RTC via Microsoft Planetary Computer (S1A_IW_GRDH_1SDV_20230924T000215_20230924T000240_050462_0613BB_rtc)",
+      "license": "Contains modified Copernicus Sentinel data. Sentinel-1 RTC hosted by Microsoft Planetary Computer, CC BY 4.0.",
+      "ais_mode": "real",
+      "notes": "Long running surface expression at the MC20 site. Inside MarineCadastre NAIS coverage, so real AIS can be ingested for this footprint instead of simulated traffic.",
+      "selftest": false,
+      "extra": {}
+    },
+    {
+      "id": "arabian_sea_mumbai_offshore",
+      "title": "Arabian Sea, Mumbai offshore approaches",
+      "sar_path": "sar/arabian_sea_mumbai_offshore.tif",
+      "t_sat": "2024-03-13T01:03:42.419107Z",
+      "bounds": [
+        71.491372,
+        18.946853,
+        71.708384,
+        19.153216
+      ],
+      "centroid": [
+        71.599995,
+        19.050006
+      ],
+      "crs": "EPSG:32643",
+      "mask_path": null,
+      "thumbnail": null,
+      "backdrop": null,
+      "source": "Sentinel-1 IW GRD RTC via Microsoft Planetary Computer (S1A_IW_GRDH_1SDV_20240313T010329_20240313T010354_052956_066912_rtc)",
+      "license": "Contains modified Copernicus Sentinel data. Sentinel-1 RTC hosted by Microsoft Planetary Computer, CC BY 4.0.",
+      "ais_mode": "simulated",
+      "notes": "Busy tanker approach lanes off the Indian west coast. Outside MarineCadastre coverage and Indian DGLL AIS is not a public feed, so simulated traffic over this real geobox and time window is the path the problem statement allows.",
+      "selftest": false,
+      "extra": {}
+    },
+    {
+      "id": "caspian_baku_seeps",
+      "title": "Caspian Sea, Baku offshore field",
+      "sar_path": "sar/caspian_baku_seeps.tif",
+      "t_sat": "2023-10-14T02:44:45.075839Z",
+      "bounds": [
+        50.348997,
+        40.089884,
+        50.610242,
+        40.290235
+      ],
+      "centroid": [
+        50.479873,
+        40.190083
+      ],
+      "crs": "EPSG:32639",
+      "mask_path": null,
+      "thumbnail": null,
+      "backdrop": null,
+      "source": "Sentinel-1 IW GRD RTC via Microsoft Planetary Computer (S1A_IW_GRDH_1SDV_20231014T024432_20231014T024457_050755_061DC6_rtc)",
+      "license": "Contains modified Copernicus Sentinel data. Sentinel-1 RTC hosted by Microsoft Planetary Computer, CC BY 4.0.",
+      "ais_mode": "simulated",
+      "notes": "Long established offshore production area with persistent surface films and heavy local traffic. Outside MarineCadastre coverage, so simulated traffic over this real geobox and time window is the sanctioned path for clause (c).",
+      "selftest": false,
+      "extra": {}
+    },
+    {
+      "id": "santa_barbara_seeps",
+      "title": "Santa Barbara Channel natural seeps",
+      "sar_path": "sar/santa_barbara_seeps.tif",
+      "t_sat": "2023-08-29T01:59:10.443231Z",
+      "bounds": [
+        -119.996664,
+        34.270329,
+        -119.744111,
+        34.479732
+      ],
+      "centroid": [
+        -119.870177,
+        34.375034
+      ],
+      "crs": "EPSG:32611",
+      "mask_path": null,
+      "thumbnail": null,
+      "backdrop": null,
+      "source": "Sentinel-1 IW GRD RTC via Microsoft Planetary Computer (S1A_IW_GRDH_1SDV_20230829T015857_20230829T015922_050084_0606D7_rtc)",
+      "license": "Contains modified Copernicus Sentinel data. Sentinel-1 RTC hosted by Microsoft Planetary Computer, CC BY 4.0.",
+      "ais_mode": "real",
+      "notes": "Natural hydrocarbon seeps plus heavy shipping. Inside NAIS coverage. Useful as a hard case: real dark films that are not a vessel discharge.",
+      "selftest": false,
+      "extra": {}
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "scene": "arabian_sea_mumbai_offshore",
+  "status": "ok",
+  "url": "/data/optical/arabian_sea_mumbai_offshore.png",
+  "bounds": [
+    [
+      18.946853,
+      71.491372
+    ],
+    [
+      19.153216,
+      71.708384
+    ]
+  ],
+  "size": [
+    1600,
+    1600
+  ],
+  "decimation": 1,
+  "item_id": "S2B_MSIL2A_20240312T053639_R005_T42QYG_20240312T092036",
+  "acquired": "2024-03-12T05:36:39.024000Z",
+  "sar_acquired": "2024-03-13T01:03:42.419107Z",
+  "offset_hours": -19.45,
+  "offset_label": "19 h before the radar pass",
+  "cloud_percent": 0.0,
+  "reported_cloud_percent": 0.000348,
+  "collection": "sentinel-2-l2a",
+  "license": "Contains modified Copernicus Sentinel data. Sentinel-2 L2A hosted by Microsoft Planetary Computer, CC BY 4.0.",
+  "caveat": "Optical context only. Sentinel-2 did not observe this water at the radar acquisition time, so it is not evidence of the slick and no detection is run on it."
+}

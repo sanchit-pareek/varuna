@@ -1,0 +1,576 @@
+<title>PS 26143 Conformance Ledger</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ground:#F2F5F7;
+    --panel:#FFFFFF;
+    --panel-2:#E9EEF2;
+    --ink:#0F171E;
+    --ink-2:#46586A;
+    --ink-3:#7B8C9C;
+    --rule:#D3DDE5;
+    --accent:#B4702A;
+    --met:#1F7A54;
+    --part:#9A6A12;
+    --gap:#B03A32;
+    --met-bg:#E2F1EA;
+    --part-bg:#F7EDD6;
+    --gap-bg:#F8E4E2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0A1017;
+      --panel:#111A23;
+      --panel-2:#16222D;
+      --ink:#E4EDF4;
+      --ink-2:#9FB3C4;
+      --ink-3:#6B8095;
+      --rule:#22323F;
+      --accent:#E0A354;
+      --met:#4FC08D;
+      --part:#E0B44F;
+      --gap:#E8776C;
+      --met-bg:#12281F;
+      --part-bg:#2A2313;
+      --gap-bg:#2B1715;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0A1017;
+    --panel:#111A23;
+    --panel-2:#16222D;
+    --ink:#E4EDF4;
+    --ink-2:#9FB3C4;
+    --ink-3:#6B8095;
+    --rule:#22323F;
+    --accent:#E0A354;
+    --met:#4FC08D;
+    --part:#E0B44F;
+    --gap:#E8776C;
+    --met-bg:#12281F;
+    --part-bg:#2A2313;
+    --gap-bg:#2B1715;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+    line-height:1.55;
+    margin:0;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 24px 80px}
+
+  header.masthead{
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 10px;
+  }
+  h1{
+    font-size:clamp(28px,4.4vw,42px);line-height:1.08;margin:0 0 12px;
+    font-weight:600;letter-spacing:-.02em;text-wrap:balance;
+  }
+  .standfirst{
+    font-size:16px;color:var(--ink-2);max-width:64ch;margin:0;
+  }
+  .meta{
+    display:flex;flex-wrap:wrap;gap:20px;margin-top:18px;
+    font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;color:var(--ink-3);
+  }
+  .meta b{color:var(--ink-2);font-weight:500}
+
+  .verdict{
+    margin:28px 0 34px;padding:20px 22px;border-radius:3px;
+    background:var(--panel);border:1px solid var(--rule);
+    border-left:4px solid var(--accent);
+  }
+  .verdict p{margin:0;font-size:15.5px;color:var(--ink)}
+  .verdict p + p{margin-top:10px;color:var(--ink-2);font-size:14.5px}
+
+  .tally{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--rule);border:1px solid var(--rule);
+    margin:0 0 40px;border-radius:3px;overflow:hidden;
+  }
+  .tally div{background:var(--panel);padding:16px 18px}
+  .tally .n{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:30px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;
+  }
+  .tally .l{
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-3);margin-top:7px;
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+  }
+
+  h2{
+    font-size:13px;letter-spacing:.13em;text-transform:uppercase;
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    color:var(--ink-2);font-weight:600;
+    margin:44px 0 4px;padding-bottom:8px;border-bottom:1px solid var(--rule);
+  }
+  h2 .cnt{color:var(--ink-3);font-weight:400}
+
+  .clause{
+    border-bottom:1px solid var(--rule);
+    padding:20px 0;
+    display:grid;
+    grid-template-columns:76px 1fr;
+    gap:0 20px;
+    align-items:start;
+  }
+  .cid{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:12px;color:var(--ink-3);padding-top:3px;
+    font-variant-numeric:tabular-nums;
+  }
+  .ctitle{
+    font-size:16.5px;font-weight:600;margin:0 0 3px;
+    display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;
+  }
+  .quote{
+    font-size:13.5px;color:var(--ink-3);font-style:italic;
+    margin:0 0 10px;max-width:70ch;
+  }
+  .body p{margin:0 0 9px;font-size:14.5px;color:var(--ink-2);max-width:74ch}
+  .body p:last-child{margin-bottom:0}
+  .body strong{color:var(--ink);font-weight:600}
+
+  .chip{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    padding:3px 8px;border-radius:2px;font-weight:600;white-space:nowrap;
+  }
+  .chip.met{background:var(--met-bg);color:var(--met)}
+  .chip.part{background:var(--part-bg);color:var(--part)}
+  .chip.gap{background:var(--gap-bg);color:var(--gap)}
+
+  code{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:12.5px;background:var(--panel-2);color:var(--ink);
+    padding:1px 5px;border-radius:2px;
+  }
+
+  .ev{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11.5px;color:var(--ink-3);margin-top:9px;
+    padding-left:11px;border-left:2px solid var(--rule);
+    overflow-x:auto;
+  }
+  .ev b{color:var(--ink-2);font-weight:500}
+
+  table{
+    width:100%;border-collapse:collapse;margin:14px 0 0;
+    font-size:13.5px;
+  }
+  .scroll{overflow-x:auto}
+  th{
+    text-align:left;font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--ink-3);font-weight:600;padding:0 14px 8px 0;
+    border-bottom:1px solid var(--rule);white-space:nowrap;
+  }
+  td{
+    padding:9px 14px 9px 0;border-bottom:1px solid var(--rule);
+    color:var(--ink-2);vertical-align:top;
+  }
+  td.mono{
+    font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12.5px;
+    font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+
+  .closing{
+    margin-top:46px;padding:22px;background:var(--panel);
+    border:1px solid var(--rule);border-radius:3px;
+  }
+  .closing h3{
+    margin:0 0 12px;font-size:15px;font-weight:600;
+  }
+  .closing ol{margin:0;padding-left:20px;color:var(--ink-2);font-size:14.5px}
+  .closing li{margin-bottom:9px;max-width:72ch}
+  .closing li:last-child{margin-bottom:0}
+
+  footer{
+    margin-top:44px;padding-top:16px;border-top:1px solid var(--rule);
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:11.5px;color:var(--ink-3);
+  }
+  @media (max-width:620px){
+    .clause{grid-template-columns:1fr;gap:8px}
+    .cid{padding-top:0}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Conformance review · adversarial read</p>
+  <h1>PS 26143 Conformance Ledger</h1>
+  <p class="standfirst">Every clause of the NTRO problem statement checked against what the
+  TideTrace codebase actually does today, not what it is designed to do. Claims are backed by
+  file, function or measured output, and the two real-world limits that remain are stated
+  as plainly as the clauses that hold. Where an earlier revision of this page overclaimed, the
+  correction is left visible rather than quietly edited out.</p>
+  <div class="meta">
+    <span><b>Statement</b> 26143 · NTRO</span>
+    <span><b>Reviewed</b> 6 Sep 2026, rebuilt UI</span>
+    <span><b>Tests</b> 123 passing, ruff clean</span>
+    <span><b>Detector in demo</b> U-Net, IoU oil 0.889</span>
+    <span><b>Runtime</b> 30-45 s / scene, CPU</span>
+  </div>
+</header>
+
+<div class="verdict">
+  <p>Thirteen clauses hold on real data. A fourth scene , Santa Barbara Channel,
+  carries <strong>real Sentinel-1, real Copernicus currents, real ERA5 wind, real
+  MarineCadastre AIS and real Sentinel-2 optical 17 hours from the radar pass</strong>, with
+  nothing simulated anywhere in it.</p>
+  <p><strong>Two clauses are partial, and an earlier version of this page called all fifteen
+  met.</strong> That was wrong, and the correction matters more than the tally. Look-alike
+  rejection (a.2) works on the dB baseline and returns zero polygons on the shipped U-Net,
+  because the Zenodo ground truth never labelled class 1. EO corroboration (a.4) is
+  corroboration, not the fused second detector the clause could be read to ask for. Both are
+  now marked partial on the clause itself.</p>
+  <p>Two further limits are facts about available data rather than work left undone. There is
+  <strong>no ocean-current model for the Caspian anywhere</strong> , verified against
+  Copernicus and HYCOM independently, both of which mask that basin as land. And no paired
+  labelled SAR/optical dataset exists from which to build a fused detector honestly.</p>
+</div>
+
+<div class="tally">
+  <div><div class="n" style="color:var(--met)">13</div><div class="l">Clauses met</div></div>
+  <div><div class="n" style="color:var(--part)">2</div><div class="l">Partial</div></div>
+  <div><div class="n" style="color:var(--gap)">0</div><div class="l">Not addressed</div></div>
+  <div><div class="n">45<span style="font-size:16px">s</span></div><div class="l">Slowest scene</div></div>
+</div>
+
+<h2>(a) Detect and characterise the spill <span class="cnt">, 4 clauses</span></h2>
+
+<div class="clause">
+  <div class="cid">a.1</div>
+  <div class="body">
+    <p class="ctitle">Detect oil spills from SAR <span class="chip met">Met</span></p>
+    <p class="quote">&ldquo;detection of oil spills &hellip; using remote sensing satellite data, such as SAR&rdquo;</p>
+    <p>The trained U-Net++ runs the detection. <strong>IoU oil 0.889</strong> against a 0.000
+    threshold baseline on held-out tiles, and , the number that actually matters , it
+    returns <strong>nothing on the clean-water control scene</strong>.</p>
+    <div class="scroll"><table>
+      <tr><th>Scene</th><th>Polygons</th><th>Oil km&sup2;</th><th>dB baseline km&sup2;</th><th>Water dB</th><th>Contrast span</th></tr>
+      <tr><td class="mono">gom_mc20_chronic_slick</td><td class="mono">29</td><td class="mono">5.149</td><td class="mono">0.409</td><td class="mono">&minus;22.9</td><td class="mono">7.00 dB</td></tr>
+      <tr><td class="mono">caspian_baku_seeps</td><td class="mono">1</td><td class="mono">0.074</td><td class="mono">15.409</td><td class="mono">&minus;20.2</td><td class="mono">7.33 dB</td></tr>
+      <tr><td class="mono">santa_barbara_seeps</td><td class="mono">2</td><td class="mono">0.356</td><td class="mono">82.073</td><td class="mono">&minus;20.0</td><td class="mono">8.94 dB</td></tr>
+      <tr><td class="mono">arabian_sea_mumbai_offshore</td><td class="mono">0</td><td class="mono">0.000</td><td class="mono">0.000</td><td class="mono">&minus;17.4</td><td class="mono">1.95 dB</td></tr>
+    </table></div>
+    <p>The Caspian and Santa Barbara gaps , 0.074 against 15.4, and 0.356 against 82.1
+    , are the segmenter declining to call whole seep fields and coastal returns mineral
+    oil where the threshold called all of it oil. Worth showing both at demo time rather than
+    only the flattering one.</p>
+    <p>The Arabian Sea zero is a measurement, not a miss. That chip spans <strong>1.95 dB</strong>
+    after speckle averaging against 7.0 dB on the Gulf chip, which has a visible slick: it is
+    uniform wind-roughened water with nothing in it. The console reports it as
+    &ldquo;No slick. Uniform water.&rdquo; with the span attached, so an empty result cannot be
+    mistaken for a detector that fell over.</p>
+    <div class="ev"><b>app/ml/infer.py</b> , tiled 512 inference, cosine-tapered stitching,
+    <code>scene_radiometry</code> &middot; the dB baseline remains and takes over automatically
+    if the checkpoint is absent, but see a.2 and the note on its measured skill</div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">a.2</div>
+  <div class="body">
+    <p class="ctitle">Reject look-alikes <span class="chip part">Partial</span></p>
+    <p><strong>On the baseline path only.</strong> The dB baseline separates oil from look-alike
+    on local contrast and boundary regularity , 73 look-alikes on the Gulf scene, 15 on the
+    Caspian, 4 on Santa Barbara. They are returned in a separate array, drawn yellow, and
+    <strong>never passed to attribution</strong>.</p>
+    <p>With the shipped U-Net loaded, all four scenes return <strong>zero</strong> look-alike
+    polygons, and an earlier revision of this page marked the clause met while quoting the
+    baseline's counts as evidence. The cause is stated correctly and the consequence was not:
+    the Zenodo ground truth segments oil only, every look-alike mask measured is all zeros, so
+    class 1 is unsupervised and the trained model cannot predict it. Those chips are used as
+    hard negatives rather than given invented labels, which is the right call and is also why
+    the yellow polygons are only visible when the baseline runs.</p>
+    <div class="ev"><b>app/ml/fallback.py</b>, <code>CONTRAST_OIL_DB 3.5</code>,
+    <code>COMPACTNESS_LOOKALIKE 0.62</code></div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">a.3</div>
+  <div class="body">
+    <p class="ctitle">Calculate geometric properties <span class="chip met">Met</span></p>
+    <p>Area, perimeter, maximum Feret length, cross width, PCA orientation, compactness,
+    centroid, bounding box and pixel count , all computed in a local
+    azimuthal-equidistant frame centred on each polygon, so areas are metric rather than
+    degrees-squared.</p>
+    <p>Detections whose centroid falls ashore are dropped and the count reported.
+    A chip containing coast has dark pixels on it that are not slicks , layover
+    shadow behind a ridge, a calm harbour basin , and nothing upstream of the mask
+    knows the difference. The Caspian scene had two such polygons on the Absheron
+    peninsula: 3 polygons and 0.315 km&sup2; becomes 1 and 0.074 km&sup2;. A polygon
+    straddling the shoreline is kept, which is the right way round to be wrong.</p>
+    <div class="ev"><b>app/geo/geometry.py</b> &middot; land mask from Natural Earth
+    1:10m land + lakes, 8/8 known points correct &middot;
+    <b>tests/test_land_mask.py</b></div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">a.4</div>
+  <div class="body">
+    <p class="ctitle">Age, if feasible <span class="chip met">Met</span></p>
+    <p>Reported as time since the hindcast origin, 9.0 h on the Gulf scene. The statement's
+    “if feasible” is doing real work here: this is a <strong>drift proxy, not a weathering age</strong>,
+    and it is labelled that way in the API, the UI and the PDF rather than dressed up as
+    laboratory measurement.</p>
+    <div class="ev"><b>app/pipeline.py:183</b> · <code>age_label</code>: “Estimated time since
+    origin (drift proxy), not lab age”</div>
+  </div>
+</div>
+
+<h2>(b) Hindcast to origin, forecast forward <span class="cnt">, 3 clauses</span></h2>
+
+<div class="clause">
+  <div class="cid">b.1</div>
+  <div class="body">
+    <p class="ctitle">Use oceanographic and meteorological data <span class="chip met">Met</span></p>
+    <p>Real ERA5 10 m wind, and ocean currents from <strong>Copernicus Marine&rsquo;s eddy-resolving
+    1/12&deg; analysis</strong> , the product an operational drift model would actually use
+    , cached per scene footprint, with Open-Meteo as the fallback.</p>
+    <div class="scroll"><table>
+      <tr><th>Scene</th><th>Currents</th><th>Mean speed</th><th>Wind</th></tr>
+      <tr><td class="mono">santa_barbara_seeps</td><td class="mono" style="color:var(--met)">CMEMS 6-hourly</td><td class="mono">0.073 m/s</td><td class="mono">4.58 m/s</td></tr>
+      <tr><td class="mono">gom_mc20_chronic_slick</td><td class="mono" style="color:var(--met)">CMEMS 6-hourly</td><td class="mono">0.176 m/s</td><td class="mono">4.33 m/s</td></tr>
+      <tr><td class="mono">arabian_sea_mumbai_offshore</td><td class="mono" style="color:var(--met)">CMEMS 6-hourly</td><td class="mono">0.065 m/s</td><td class="mono">5.66 m/s</td></tr>
+      <tr><td class="mono">caspian_baku_seeps</td><td class="mono" style="color:var(--part)">none exist</td><td class="mono">, </td><td class="mono">6.52 m/s</td></tr>
+    </table></div>
+    <p><strong>The Caspian limit is real and is not ours to close.</strong> That sea is endorheic,
+    so global ocean models carry it as land. Copernicus returns 306 cells and 306 NaNs over the
+    Baku footprint and publishes no Caspian product; HYCOM returns its fill value
+    <code>&minus;30000</code> at the same point while returning a true <code>&minus;0.48 m/s</code>
+    in the Gulf. Two independent models agree the field does not exist. Rather than let a zero
+    pass as data, the run states that drift there is wind-driven only.</p>
+    <div class="ev"><b>scripts/build_metocean_cache.py</b>,
+    <code>cmems_mod_glo_phy-cur_anfc_0.083deg_PT6H-i</code>, chosen over <code>merged-uv</code>
+    because that folds in Stokes drift the model already adds as 3% of U10</div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">b.2</div>
+  <div class="body">
+    <p class="ctitle">Trace the slick back to origin point and time <span class="chip met">Met</span></p>
+    <p>Backward Lagrangian ensemble, 50 particles, RK2, hourly steps, drift velocity
+    <code>U_current + 0.03·U_wind10</code>. The origin is the first hour where the 90th-percentile
+    ensemble spread exceeds 8 km, clipped to 6-48 h and buffered 2 km, a rule fixed in advance
+    rather than tuned per scene.</p>
+    <div class="ev"><b>app/drift/</b>, origin zone, ring and hourly envelopes returned per run</div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">b.3</div>
+  <div class="body">
+    <p class="ctitle">Predict the future flow of the slick <span class="chip met">Met</span></p>
+    <p>Forward ensemble over a 36 h default horizon with hourly envelopes, a forecast cone, a
+    threatened bounding box, and a coastline-impact flag raised by real polygon intersection
+    against the land mask, not a bounding-box approximation.</p>
+    <div class="ev"><b>app/drift/land.py</b>, <code>_rings_intersect</code> ·
+    COAST step reports <code>coast_flag</code></div>
+  </div>
+</div>
+
+<h2>(c) Attribute the spill to a vessel <span class="cnt">, 4 clauses</span></h2>
+
+<div class="clause">
+  <div class="cid">c.1</div>
+  <div class="body">
+    <p class="ctitle">Reconstruct traffic around the origin window <span class="chip met">Met</span></p>
+    <p>295,051 AIS rows across 421 vessels are queried for tracks intersecting the origin zone
+    within the time window. The Gulf scene resolves 13 candidate vessels entirely from real
+    MarineCadastre records.</p>
+    <div class="ev"><b>app/ais/ingest.py</b>, 16-column MarineCadastre schema,
+    ITU-R M.1371 type decoding</div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">c.2</div>
+  <div class="body">
+    <p class="ctitle">Filter out irrelevant traffic <span class="chip met">Met</span></p>
+    <p>An explicit funnel, reported rather than hidden: <code>considered_vessels 9 → kept 3</code>
+    on the Caspian, with <code>dropped_outside_radius 6</code> and
+    <code>dropped_too_few_points 0</code> itemised so a reviewer can see exactly what was discarded
+    and why.</p>
+    <div class="ev">FILTER step · vectorised <code>ring_distances_km</code>, exact closest
+    approach rather than a sampled probe</div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">c.3</div>
+  <div class="body">
+    <p class="ctitle">Score suspects on proximity, trajectory, behaviour <span class="chip met">Met</span></p>
+    <p>All three named aspects are separate weighted components, plus a vessel-type prior and a
+    temporal term. Scores are an absolute percentage of the weight sum, never min-maxed across
+    the batch, so a scene with no real suspect cannot manufacture a 100% one.</p>
+    <div class="scroll"><table>
+      <tr><th>Component</th><th>Weight</th><th>Basis</th></tr>
+      <tr><td class="mono">proximity</td><td class="mono">0.30</td><td>exp(−d/R) to the origin <em>point</em>, R the zone radius</td></tr>
+      <tr><td class="mono">behaviour</td><td class="mono">0.25</td><td>max of four anomaly detectors, gap bonus gated on reception count</td></tr>
+      <tr><td class="mono">time</td><td class="mono">0.20</td><td>exp(−|Δt|/1.5 h) from the estimated origin time</td></tr>
+      <tr><td class="mono">type</td><td class="mono">0.15</td><td>published prior for the decoded AIS type</td></tr>
+      <tr><td class="mono">trajectory</td><td class="mono">0.10</td><td>course alignment at closest approach</td></tr>
+      <tr><td class="mono">× confidence</td><td class="mono">0.35-1.0</td><td>how much of the track was received rather than dead reckoned</td></tr>
+    </table></div>
+    <p><strong>Three of those rows are corrections to a previous revision of this page, which
+    marked the clause met on a model that had two defects worth naming.</strong> Proximity
+    decayed on distance to the zone <em>boundary</em> and clamped to zero inside, so on a 227 km²
+    origin zone 8 of 10 Gulf suspects scored exactly 1.00 and the heaviest weight carried no
+    information. There was no temporal term at all, so the ±3 h window was a filter and a vessel
+    three hours early scored like one on the origin minute, which is spatial correlation, not
+    the spatio-temporal correlation the statement asks for. And the AIS-gap bonus was ungated,
+    so the top suspect on the Gulf scene was a fishing boat with <strong>two</strong> AIS
+    receptions whose track was 99.4% dead reckoning, tied at 73.8% with two others. It now ranks
+    outside the top ten.</p>
+    <div class="ev"><b>app/ais/score.py</b>, <code>raw = 0.30·prox + 0.20·time + 0.25·beh +
+    0.15·type + 0.10·traj</code>, <code>score = 100·raw/Σw · confidence</code> &middot;
+    pinned by <code>tests/test_scoring.py</code></div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">c.4</div>
+  <div class="body">
+    <p class="ctitle">Behavioural anomalies, specifically <span class="chip met">Met</span></p>
+    <p>Four independent detectors, each contributing a reason string to the verdict rather than an
+    unexplained number: operational-discharge speed band; course change around closest approach;
+    speed drop; and an <strong>AIS gap whose bridged segment passes near the origin zone</strong>,
+    the going-dark case, which is the one that matters most for attribution.</p>
+    <div class="ev"><b>app/ais/score.py</b>, <code>s_behavior</code> ·
+    e.g. <code>ais_gap_47min_within_2.3km</code></div>
+  </div>
+</div>
+
+<h2>Expected solution and data <span class="cnt">, 4 clauses</span></h2>
+
+<div class="clause">
+  <div class="cid">d.1</div>
+  <div class="body">
+    <p class="ctitle">Automated ML detection model <span class="chip met">Met</span></p>
+    <p>3-class U-Net++ on a <code>timm-efficientnet-b0</code> encoder, trained on Kaggle GPU with
+    checkpoint and optimiser-state resume through Hugging Face. IoU oil <strong>0.889</strong>,
+    IoU sea 0.982, and 35 of 40 epochs cleared the deployment gate, so the result is stable rather
+    than one lucky epoch.</p>
+    <p>It took three runs, and the story is worth keeping. The first checkpoint scored IoU 0.857
+    and painted every scene solid oil; that produced a rebalanced training set and a new gate. The
+    second scored 0.889 and did the same thing. The cause was neither: Zenodo ships its bands as
+    <strong>(VH, VV)</strong> and the scene fetcher read Planetary Computer assets as
+    <strong>(VV, VH)</strong>. The network trained on (dark, bright) and was asked to predict on
+    (bright, dark). Ordering bands by median brightness , co-pol exceeds cross-pol over water
+    in every sensor and sea state , fixed it with no retraining at all.</p>
+    <div class="ev"><b>app/ml/dataset.py</b> <code>order_bands</code> &middot;
+    gate <code>water_false_oil &le; 0.02</code> &middot; both broken checkpoints kept in
+    <b>models/quarantine/</b> so the claim can be checked</div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">d.2</div>
+  <div class="body">
+    <p class="ctitle">SAR <em>and EO</em> imagery <span class="chip part">Partial</span></p>
+    <p class="quote">&ldquo;remote sensing satellite data, such as SAR and EO imagery&rdquo;</p>
+    <p>Every scene carries a cloud-masked Sentinel-2 L2A chip from the same STAC as the radar, and
+    the pipeline has an <code>EO</code> stage that puts it to work. For each SAR detection it
+    compares the optical inside the polygon against a ring around it: a surface film reads darker
+    than the water round it, a rig or sandbar or ship reads brighter, a low-wind cell reads like
+    nothing at all. Each polygon carries its verdict into the API, the verdict card and the map
+    popup.</p>
+    <div class="scroll"><table>
+      <tr><th>Scene</th><th>Offset from radar</th><th>Obscured</th><th>Verdicts</th></tr>
+      <tr><td class="mono">santa_barbara_seeps</td><td class="mono">17 h after</td><td class="mono">0.0%</td><td class="mono">1 consistent, 1 neutral</td></tr>
+      <tr><td class="mono">caspian_baku_seeps</td><td class="mono">16.8 days before</td><td class="mono">0.0%</td><td class="mono">3 consistent</td></tr>
+      <tr><td class="mono">gom_mc20_chronic_slick</td><td class="mono">4.3 days before</td><td class="mono">23.9%</td><td class="mono">28 obscured, 1 neutral</td></tr>
+    </table></div>
+    <p>It is corroboration and never a detector: <strong>nothing is added, removed or reweighted
+    by the check</strong>, and the caveat travels with every verdict , Sentinel-2 did not
+    observe this water when the radar did. A genuinely fused SAR+EO model is out of scope on
+    purpose: there is no paired labelled dataset, and inventing supervision for one would repeat
+    the mistake that produced the first quarantined checkpoint.</p>
+    <div class="ev"><b>app/eo/corroborate.py</b> &middot; 8 tests in
+    <b>tests/test_eo_corroboration.py</b>, including the one that matters: nodata must report
+    <em>obscured</em>, not <em>no difference</em></div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">d.3</div>
+  <div class="body">
+    <p class="ctitle">AIS in MarineCadastre format, real or synthetic <span class="chip met">Met</span></p>
+    <p>The statement explicitly permits synthetic traffic where real tracks are unavailable, and
+    both paths are implemented against the same 16-column schema. What matters is that the two are
+    never conflated: every run states its provenance, and the scorer is blind to the difference.</p>
+    <div class="scroll"><table>
+      <tr><th>Scene</th><th>AIS</th><th>Suspects</th><th>Rank 1</th></tr>
+      <tr><td class="mono">gom_mc20_chronic_slick</td><td class="mono" style="color:var(--met)">real</td><td class="mono">10</td><td>MISS BARBARA · fishing · 82.8</td></tr>
+      <tr><td class="mono">caspian_baku_seeps</td><td class="mono" style="color:var(--part)">simulated</td><td class="mono">3</td><td>MT TRIDENT GLORY · crude oil tanker · 89.8</td></tr>
+      <tr><td class="mono">arabian_sea_mumbai_offshore</td><td class="mono" style="color:var(--part)">simulated</td><td class="mono">0</td><td>, control scene, correctly silent</td></tr>
+    </table></div>
+    <p>A live recorder now backs the “real AIS if available” branch for anything observed from
+    here on. It is a recorder rather than a fetcher because no stream can produce 2023 positions:
+    an operational system has <em>been</em> recording, so a slick found tomorrow already has real
+    traffic around its origin window. Verified over the Singapore Strait, 47 positions from 43
+    vessels in a minute, written through the same parser as every other source.</p>
+    <div class="ev">Warning surfaced per run: “3 of 3 candidate vessels came from simulated
+    traffic over this scene's real geobox and time window” ·
+    <b>scripts/record_ais.py</b>, aisstream.io, <code>source=aisstream_live</code></div>
+  </div>
+</div>
+
+<div class="clause">
+  <div class="cid">d.4</div>
+  <div class="body">
+    <p class="ctitle">A suitable visual interface <span class="chip met">Met</span></p>
+    <p>An operations console rather than a gallery: scene selector with real acquisition metadata,
+    the ten pipeline stages with per-stage timings, a verdict card, a time scrubber over the drift,
+    and cached Satellite / Nautical / Seamark basemap layers so the map reads as a chart offline.</p>
+    <p>It also shows its own weaknesses. The header badge reads <code>dB BASELINE</code> when no
+    model is loaded, and provenance warnings about simulated AIS or missing currents appear in the
+    panel rather than only in a log.</p>
+    <div class="ev"><b>app/static/app.js</b> · 5,170 cached tiles across 4 layers, 9.8 MB ·
+    runs with the network off</div>
+  </div>
+</div>
+
+<div class="closing">
+  <h3>What is left</h3>
+  <ol>
+    <li><strong>The Caspian has no current model in existence</strong>, confirmed against
+    Copernicus and HYCOM independently. It is the one input that cannot be obtained by doing more
+    work, and the right response is to keep saying so on every run rather than substituting a
+    plausible-looking field.</li>
+    <li><strong>Look-alikes are unsupervised in the trained model.</strong> The archive&rsquo;s
+    class-1 masks are measurably empty, so those chips are used as hard negatives rather than
+    given invented labels. The dB baseline still separates look-alikes on contrast and shape, and
+    the UI still draws them.</li>
+    <li><strong>A fused SAR+EO detector</strong> remains a research project rather than an
+    afternoon, for the reason given under d.2.</li>
+    <li><strong>The live AIS recorder needs to run for a while</strong> before its vessels score
+    properly. Static messages carrying vessel type arrive about every six minutes, and type is 20%
+    of the suspicion score.</li>
+  </ol>
+</div>
+
+<footer>
+  TideTrace · SIH 2026 · Problem Statement 26143 · National Technical Research Organisation.
+  Evidence drawn from the running system on 4 September 2026, not from design intent. Revised after the Santa Barbara scene, the EO corroboration stage and a second independent check of Caspian current availability.
+</footer>
+
+</div>

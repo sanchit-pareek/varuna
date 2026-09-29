@@ -1,0 +1,17 @@
+{
+  "id": "nalin1ahuja/tidetrace-train",
+  "title": "TideTrace Train",
+  "code_file": "tidetrace-train.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [],
+  "kernel_sources": [
+    "nalin1ahuja/tidetrace-prepare-data"
+  ],
+  "model_sources": []
+}

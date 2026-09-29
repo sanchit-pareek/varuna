@@ -1,0 +1,49 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Data is fetched by scripts, not committed. See README.
+data/sar/*.tif
+data/sar/*.tiff
+data/metocean/*.npz
+data/metocean/*.nc
+data/ais/*.sqlite
+data/ais/*.csv
+data/jobs/*.json
+data/cache/
+data/zenodo/
+data/tiles/
+models/*.pt
+
+# Keep the scene index so a checkout knows what it should fetch.
+!data/sar/scenes.json
+
+.pytest_cache/
+
+# Credentials never belong here. tests/test_offline_boundary.py also scans for
+# token-shaped strings, but the first line of defence is not writing them down.
+.env
+*.token
+access_token
+kaggle.json
+.huggingface/
+
+# Land mask is fetched by scripts/build_land_mask.py
+data/land/
+
+# Cached basemap tiles, optical corroboration chips and the world coastline are
+# all rebuilt by scripts/. Only the small manifests are worth tracking.
+data/basemap/
+data/optical/*.png
+data/optical/*.jpg
+
+# Quarantined checkpoints are kept locally as evidence, not shipped.
+models/quarantine/*.pt
+
+# Spec sheet and editor scratch.
+p2.docx
+.claude/
+.ruff_cache/

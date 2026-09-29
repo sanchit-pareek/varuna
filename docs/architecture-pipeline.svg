@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 640" width="1160" height="640"
+     role="img" aria-label="One press of RUN PIPELINE moves a SAR scene through nine stages: detect, characterise, load metocean, hindcast to an origin zone, forecast, coast check, age proxy, AIS join, filter and score. Each arrow carries the specific value passed on.">
+  <defs>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#35d0ff"/>
+    </marker>
+    <marker id="pg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#61798f"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1160" height="640" fill="#0c141f"/>
+
+  <text x="24" y="34" fill="#ffffff" font-family="ui-monospace,Consolas,monospace" font-size="17" font-weight="700">POST /api/run  ·  what one button actually does</text>
+  <text x="24" y="56" fill="#8fa6bf" font-family="ui-monospace,Consolas,monospace" font-size="13">Nine stages. Every arrow carries a real value, and every stage is timed in the trace log.</text>
+
+  <!-- clause bands -->
+  <rect x="24" y="80" width="352" height="26" fill="#2a0f2a" stroke="#ff2dc8"/>
+  <text x="36" y="98" fill="#ff8ade" font-family="ui-monospace,Consolas,monospace" font-size="12.5" font-weight="700">CLAUSE (a)  detect and characterise</text>
+
+  <rect x="392" y="80" width="368" height="26" fill="#0f1f2e" stroke="#7fb4ff"/>
+  <text x="404" y="98" fill="#9ec8ff" font-family="ui-monospace,Consolas,monospace" font-size="12.5" font-weight="700">CLAUSE (b)  trace back, predict forward</text>
+
+  <rect x="776" y="80" width="360" height="26" fill="#2a1400" stroke="#ff9a2e"/>
+  <text x="788" y="98" fill="#ffc078" font-family="ui-monospace,Consolas,monospace" font-size="12.5" font-weight="700">CLAUSE (c)  attribute to a vessel</text>
+
+  <!-- stage boxes -->
+  <g font-family="ui-monospace,Consolas,monospace">
+    <!-- a -->
+    <rect x="24" y="124" width="164" height="86" fill="#111c2a" stroke="#ff2dc8"/>
+    <text x="36" y="146" fill="#ffffff" font-size="13" font-weight="700">1 DETECT</text>
+    <text x="36" y="166" fill="#8fa6bf" font-size="11">U-Net, 512 tiles</text>
+    <text x="36" y="181" fill="#8fa6bf" font-size="11">else -22 dB baseline</text>
+    <text x="36" y="200" fill="#61798f" font-size="10.5">sea / look-alike / oil</text>
+
+    <rect x="212" y="124" width="164" height="86" fill="#111c2a" stroke="#ff2dc8"/>
+    <text x="224" y="146" fill="#ffffff" font-size="13" font-weight="700">2 CHAR</text>
+    <text x="224" y="166" fill="#8fa6bf" font-size="11">area, length, width</text>
+    <text x="224" y="181" fill="#8fa6bf" font-size="11">perimeter, orientation</text>
+    <text x="224" y="200" fill="#61798f" font-size="10.5">centroid, compactness</text>
+
+    <!-- b -->
+    <rect x="392" y="124" width="164" height="86" fill="#111c2a" stroke="#7fb4ff"/>
+    <text x="404" y="146" fill="#ffffff" font-size="13" font-weight="700">3 METOCEAN</text>
+    <text x="404" y="166" fill="#8fa6bf" font-size="11">cached ERA5 wind</text>
+    <text x="404" y="181" fill="#8fa6bf" font-size="11">and ocean currents</text>
+    <text x="404" y="200" fill="#61798f" font-size="10.5">bilinear in space</text>
+
+    <rect x="580" y="124" width="180" height="86" fill="#111c2a" stroke="#7fb4ff"/>
+    <text x="592" y="146" fill="#ffffff" font-size="13" font-weight="700">4 HINDCAST</text>
+    <text x="592" y="166" fill="#8fa6bf" font-size="11">50 particles, RK2, dt 1 h</text>
+    <text x="592" y="181" fill="#8fa6bf" font-size="11">V = U_cur + 0.03 U_wind</text>
+    <text x="592" y="200" fill="#61798f" font-size="10.5">stop when spread &gt; 8 km</text>
+
+    <rect x="392" y="238" width="164" height="86" fill="#111c2a" stroke="#7fb4ff"/>
+    <text x="404" y="260" fill="#ffffff" font-size="13" font-weight="700">5 FORECAST</text>
+    <text x="404" y="280" fill="#8fa6bf" font-size="11">same ensemble, 36 h</text>
+    <text x="404" y="295" fill="#8fa6bf" font-size="11">forward</text>
+    <text x="404" y="314" fill="#61798f" font-size="10.5">swept 90 pct cone</text>
+
+    <rect x="580" y="238" width="180" height="86" fill="#111c2a" stroke="#7fb4ff"/>
+    <text x="592" y="260" fill="#ffffff" font-size="13" font-weight="700">6 COAST  ·  7 AGE</text>
+    <text x="592" y="280" fill="#8fa6bf" font-size="11">cone vs land polygons</text>
+    <text x="592" y="295" fill="#8fa6bf" font-size="11">age = t_sat - t_origin</text>
+    <text x="592" y="314" fill="#ff9a2e" font-size="10.5">labelled a drift proxy</text>
+
+    <!-- c -->
+    <rect x="776" y="124" width="164" height="86" fill="#111c2a" stroke="#ff9a2e"/>
+    <text x="788" y="146" fill="#ffffff" font-size="13" font-weight="700">8 AIS</text>
+    <text x="788" y="166" fill="#8fa6bf" font-size="11">SQLite, MarineCadastre</text>
+    <text x="788" y="181" fill="#8fa6bf" font-size="11">columns</text>
+    <text x="788" y="200" fill="#61798f" font-size="10.5">resample to 1 min</text>
+
+    <rect x="964" y="124" width="172" height="86" fill="#111c2a" stroke="#ff9a2e"/>
+    <text x="976" y="146" fill="#ffffff" font-size="13" font-weight="700">9 FILTER</text>
+    <text x="976" y="166" fill="#8fa6bf" font-size="11">within radius of the</text>
+    <text x="976" y="181" fill="#8fa6bf" font-size="11">zone, inside the window</text>
+    <text x="976" y="200" fill="#61798f" font-size="10.5">funnel counts reported</text>
+
+    <rect x="776" y="238" width="360" height="86" fill="#1a0d06" stroke="#ff9a2e"/>
+    <text x="788" y="260" fill="#ffffff" font-size="13" font-weight="700">10 SCORE</text>
+    <text x="788" y="280" fill="#ffc078" font-size="11.5">raw = 0.40 prox + 0.20 type + 0.15 traj + 0.25 beh</text>
+    <text x="788" y="298" fill="#8fa6bf" font-size="11">absolute percentage, never min-max across the batch</text>
+    <text x="788" y="315" fill="#61798f" font-size="10.5">so a clean scene returns an empty leaderboard</text>
+  </g>
+
+  <!-- flow arrows -->
+  <g stroke="#35d0ff" stroke-width="1.8" fill="none" marker-end="url(#p)">
+    <line x1="192" y1="167" x2="206" y2="167"/>
+    <line x1="380" y1="167" x2="386" y2="167"/>
+    <line x1="560" y1="167" x2="574" y2="167"/>
+    <line x1="764" y1="167" x2="770" y2="167"/>
+    <line x1="944" y1="167" x2="958" y2="167"/>
+  </g>
+
+  <text x="376" y="120" fill="#35d0ff" font-family="ui-monospace,Consolas,monospace" font-size="10.5" text-anchor="middle">oil polygon</text>
+  <text x="566" y="120" fill="#35d0ff" font-family="ui-monospace,Consolas,monospace" font-size="10.5" text-anchor="middle">centroid + ring</text>
+  <text x="766" y="120" fill="#35d0ff" font-family="ui-monospace,Consolas,monospace" font-size="10.5" text-anchor="middle">origin zone + t</text>
+  <text x="952" y="120" fill="#35d0ff" font-family="ui-monospace,Consolas,monospace" font-size="10.5" text-anchor="middle">tracks</text>
+
+  <!-- hindcast down to forecast/coast -->
+  <g stroke="#35d0ff" stroke-width="1.8" fill="none" marker-end="url(#p)">
+    <path d="M 670 214 L 670 226 L 490 226 L 490 232"/>
+    <path d="M 670 214 L 670 232"/>
+    <path d="M 1050 214 L 1050 226 L 956 226 L 956 232"/>
+  </g>
+
+  <!-- inputs row -->
+  <text x="24" y="372" fill="#61798f" font-family="ui-monospace,Consolas,monospace" font-size="12">READS ONLY THESE FILES</text>
+  <g font-family="ui-monospace,Consolas,monospace" font-size="11.5" fill="#d8e6f5">
+    <rect x="24" y="384" width="164" height="30" fill="#0b1725" stroke="#2c4a6b"/><text x="36" y="404">data/sar/*.tif</text>
+    <rect x="212" y="384" width="164" height="30" fill="#0b1725" stroke="#2c4a6b"/><text x="224" y="404">models/*.pt</text>
+    <rect x="392" y="384" width="164" height="30" fill="#0b1725" stroke="#2c4a6b"/><text x="404" y="404">data/metocean/*.npz</text>
+    <rect x="580" y="384" width="180" height="30" fill="#0b1725" stroke="#2c4a6b"/><text x="592" y="404">data/land/*.geojson</text>
+    <rect x="776" y="384" width="164" height="30" fill="#0b1725" stroke="#2c4a6b"/><text x="788" y="404">data/ais/ais.sqlite</text>
+  </g>
+  <g stroke="#61798f" stroke-width="1.2" fill="none" marker-end="url(#pg)" stroke-dasharray="4,3">
+    <line x1="106" y1="380" x2="106" y2="216"/>
+    <line x1="294" y1="380" x2="294" y2="216"/>
+    <line x1="474" y1="380" x2="474" y2="216"/>
+    <line x1="670" y1="380" x2="670" y2="330"/>
+    <line x1="858" y1="380" x2="858" y2="216"/>
+  </g>
+
+  <!-- output -->
+  <rect x="24" y="452" width="1112" height="96" fill="#0b1725" stroke="#2ee6a8"/>
+  <text x="36" y="476" fill="#2ee6a8" font-family="ui-monospace,Consolas,monospace" font-size="13" font-weight="700">OUTPUT  ·  data/jobs/&lt;job_id&gt;.json</text>
+  <g font-family="ui-monospace,Consolas,monospace" font-size="11.5" fill="#8fa6bf">
+    <text x="36" y="498">polygons with every geometric property   ·   origin zone with its honest radius   ·   both cones   ·   hourly tracks</text>
+    <text x="36" y="516">ranked suspects with four sub-scores and reason codes   ·   the AIS funnel counts   ·   per stage timings</text>
+    <text x="36" y="536" fill="#a9f4dc">Every number on the console comes from this document. Open it and check.</text>
+  </g>
+
+  <text x="24" y="580" fill="#61798f" font-family="ui-monospace,Consolas,monospace" font-size="12">If detection finds no oil, the run still completes and reports an empty result. A pipeline that cannot say nothing will say anything.</text>
+  <text x="24" y="602" fill="#61798f" font-family="ui-monospace,Consolas,monospace" font-size="12">Look-alike polygons are detected, drawn in yellow, and excluded from attribution by design.</text>
+  <text x="24" y="624" fill="#61798f" font-family="ui-monospace,Consolas,monospace" font-size="12">SIH26143  ·  NTRO  ·  Space Technology</text>
+</svg>

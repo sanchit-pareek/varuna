@@ -1,0 +1,60 @@
+# TideTrace runtime. Python 3.11 or newer.
+#
+# Everything in the REQUIRED block is genuinely required. Everything in the
+# OPTIONAL blocks is genuinely optional: the app starts, serves the console and
+# runs the whole pipeline without any of it, and says in the UI what it lost.
+
+# ---------------- REQUIRED ----------------
+fastapi>=0.110
+uvicorn>=0.27
+pydantic>=2.6
+python-multipart>=0.0.9
+numpy>=1.26
+
+# ---------------- STRONGLY RECOMMENDED ----------------
+# scipy   : fast connected components, morphology and the speckle filter.
+#           Without it, pure numpy equivalents are used and detection is slower.
+# pyproj  : exact local azimuthal equidistant projection. Without it, the
+#           spherical formulas in app/geo/crs.py are used instead.
+# rasterio: robust GeoTIFF reading and writing. Without it, the builtin reader
+#           in app/geo/tiffio.py handles uncompressed and Deflate TIFFs.
+scipy>=1.11
+pyproj>=3.6
+rasterio>=1.3
+
+# ---------------- OPTIONAL ----------------
+# shapely : not required; the geometry this product needs is implemented in
+#           app/geo/geometry.py so the app runs without it.
+# pillow  : not required; PNG overlays are written by app/viz/tiles.py.
+# netCDF4 : only if you want to keep metocean caches as .nc instead of .npz.
+# reportlab: only for the PDF attribution note. The HTML note always works.
+shapely>=2.0
+pillow>=10.0
+requests>=2.31
+
+# ---------------- TRAINING ONLY, NOT ON THE DEMO LAPTOP ----------------
+# Install these on Kaggle. The judged demo must not depend on them.
+# torch>=2.1
+# segmentation-models-pytorch>=0.3.3
+# albumentations>=1.4
+# scikit-learn>=1.4
+
+# ---------------- OFFLINE PREP, NOT ON THE DEMO LAPTOP ----------------
+# Copernicus Marine currents, fetched once by scripts/build_metocean_cache.py
+# and then frozen into data/metocean. It pulls boto3, and rasterio imports boto3
+# on sight for its optional AWS session support -- so installing this puts a
+# network client in the process of anything that opens a GeoTIFF. That is
+# harmless while preparing data and unacceptable on the judged laptop, which is
+# what tests/test_offline_boundary.py is guarding.
+# copernicusmarine>=2.4
+
+# ---------------- SYNC AND TRAINING, NOT ON THE DEMO LAPTOP ----------------
+# Only needed to move data to and from Hugging Face and to drive Kaggle.
+# tests/test_offline_boundary.py fails if anything under app/ except hub.py
+# imports one of these, so they can never creep onto the request path.
+# huggingface_hub>=1.29
+# kaggle>=2.2
+
+# ---------------- DEVELOPMENT ----------------
+pytest>=8.0
+httpx>=0.27

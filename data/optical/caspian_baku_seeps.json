@@ -1,0 +1,30 @@
+{
+  "scene": "caspian_baku_seeps",
+  "status": "ok",
+  "url": "/data/optical/caspian_baku_seeps.png",
+  "bounds": [
+    [
+      40.089884,
+      50.348997
+    ],
+    [
+      40.290235,
+      50.610242
+    ]
+  ],
+  "size": [
+    1600,
+    1600
+  ],
+  "decimation": 1,
+  "item_id": "S2B_MSIL2A_20230927T072649_R049_T39TVE_20241026T085816",
+  "acquired": "2023-09-27T07:26:49.024000Z",
+  "sar_acquired": "2023-10-14T02:44:45.075839Z",
+  "offset_hours": -403.3,
+  "offset_label": "16.8 days before the radar pass",
+  "cloud_percent": 0.0,
+  "reported_cloud_percent": 0.696242,
+  "collection": "sentinel-2-l2a",
+  "license": "Contains modified Copernicus Sentinel data. Sentinel-2 L2A hosted by Microsoft Planetary Computer, CC BY 4.0.",
+  "caveat": "Optical context only. Sentinel-2 did not observe this water at the radar acquisition time, so it is not evidence of the slick and no detection is run on it."
+}

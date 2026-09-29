@@ -1,0 +1,606 @@
+<title>TideTrace Briefing Deck</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#070D13;
+    --panel:#0E1822;
+    --panel-2:#152331;
+    --rule:#1E3141;
+    --ink:#DCE9F3;
+    --ink-2:#8FA8BC;
+    --ink-3:#5F7789;
+    --cyan:#42D4E0;
+    --oil:#FF2DC8;
+    --amber:#E8A33D;
+    --green:#4FC08D;
+    --red:#E8776C;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--ground);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .deck{position:relative}
+  .slide{
+    min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+    padding:64px max(28px,6vw) 88px;border-bottom:1px solid var(--rule);
+    scroll-margin-top:0;
+  }
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--cyan);margin:0 0 18px;
+  }
+  h1{
+    font-family:"Barlow Condensed",Impact,sans-serif;font-weight:700;
+    font-size:clamp(46px,9vw,116px);line-height:.92;letter-spacing:-.01em;
+    margin:0 0 20px;text-transform:uppercase;text-wrap:balance;
+  }
+  h2{
+    font-family:"Barlow Condensed",Impact,sans-serif;font-weight:600;
+    font-size:clamp(30px,5vw,58px);line-height:1;letter-spacing:.005em;
+    margin:0 0 26px;text-transform:uppercase;
+  }
+  h3{font-size:15px;font-weight:600;margin:0 0 10px;color:var(--ink)}
+  p{font-size:16px;line-height:1.6;color:var(--ink-2);max-width:70ch;margin:0 0 14px}
+  p.lead{font-size:19px;color:var(--ink);max-width:64ch}
+  strong{color:var(--ink);font-weight:600}
+  code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;
+    background:var(--panel-2);padding:1px 5px;border-radius:2px;color:var(--cyan);
+  }
+  .wrap{width:100%;max-width:1180px;margin:0 auto}
+
+  .grid{display:grid;gap:16px;margin-top:8px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(178px,1fr))}
+
+  .card{
+    background:var(--panel);border:1px solid var(--rule);border-radius:3px;
+    padding:18px 20px;
+  }
+  .card.accent{border-left:3px solid var(--cyan)}
+  .card.warn{border-left:3px solid var(--amber)}
+  .card.bad{border-left:3px solid var(--red)}
+  .card.good{border-left:3px solid var(--green)}
+  .card p{font-size:14px;margin:0}
+  .card p + p{margin-top:8px}
+
+  .stat{font-family:"IBM Plex Mono",monospace;font-size:34px;font-weight:600;
+        line-height:1;font-variant-numeric:tabular-nums}
+  .stat.c{color:var(--cyan)} .stat.g{color:var(--green)} .stat.a{color:var(--amber)}
+  .stat-l{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.12em;
+          text-transform:uppercase;color:var(--ink-3);margin-top:8px}
+
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+  .scroll{overflow-x:auto}
+  th{
+    text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+    font-weight:600;padding:0 16px 9px 0;border-bottom:1px solid var(--rule);
+    white-space:nowrap;
+  }
+  td{padding:9px 16px 9px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);
+     vertical-align:top}
+  td.m{font-family:"IBM Plex Mono",monospace;font-size:13px;
+       font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+  .yes{color:var(--green)} .no{color:var(--red)} .part{color:var(--amber)}
+
+  figure{margin:0}
+  figcaption{
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);
+    margin-top:14px;line-height:1.5;
+  }
+  svg{width:100%;height:auto;display:block}
+
+  .nav{
+    position:fixed;left:0;right:0;bottom:0;height:44px;
+    display:flex;align-items:center;gap:16px;padding:0 20px;
+    background:rgba(7,13,19,.94);border-top:1px solid var(--rule);
+    font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+    z-index:50;backdrop-filter:blur(6px);
+  }
+  .nav b{color:var(--cyan);font-weight:500}
+  .rail{flex:1;height:2px;background:var(--rule);position:relative}
+  .rail i{position:absolute;left:0;top:0;bottom:0;background:var(--cyan);width:0}
+  .nav button{
+    background:var(--panel-2);border:1px solid var(--rule);color:var(--ink-2);
+    font-family:inherit;font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer;
+  }
+  .nav button:hover{border-color:var(--cyan);color:var(--ink)}
+  .nav button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  .tag{
+    display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;
+    letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;
+    background:var(--panel-2);color:var(--ink-2);margin-right:6px;
+  }
+  .tag.on{background:#0F2A20;color:var(--green)}
+  .tag.off{background:#2A1715;color:var(--red)}
+
+  @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+  html{scroll-behavior:smooth}
+</style>
+
+<div class="deck">
+
+<!-- 1 ------------------------------------------------------------------ -->
+<section class="slide" id="s1">
+  <div class="wrap">
+    <p class="eyebrow">SIH 2026 · Problem Statement 26143 · NTRO</p>
+    <h1>TideTrace</h1>
+    <p class="lead">Detect an oil slick in radar. Trace it back to where it began.
+    Name the ship that was there.</p>
+    <div class="grid g4" style="margin-top:38px">
+      <div class="card"><div class="stat c">0.889</div><div class="stat-l">IoU oil, held out</div></div>
+      <div class="card"><div class="stat g">15/15</div><div class="stat-l">PS clauses met</div></div>
+      <div class="card"><div class="stat">441,668</div><div class="stat-l">Real AIS rows</div></div>
+      <div class="card"><div class="stat a">0</div><div class="stat-l">Network calls at runtime</div></div>
+    </div>
+    <p style="margin-top:34px;font-size:14px">
+      <span class="tag on">Sentinel-1 SAR</span><span class="tag on">Sentinel-2 EO</span>
+      <span class="tag on">Copernicus Marine</span><span class="tag on">ERA5</span>
+      <span class="tag on">MarineCadastre AIS</span><span class="tag on">Runs offline</span>
+    </p>
+  </div>
+</section>
+
+<!-- 2 ------------------------------------------------------------------ -->
+<section class="slide" id="s2">
+  <div class="wrap">
+    <p class="eyebrow">The problem</p>
+    <h2>A slick is found. Nobody is charged.</h2>
+    <p class="lead">Marine oil spills are detected often and attributed rarely. The
+    radar shows the film hours after the discharge, by which time the slick has
+    drifted and the vessel has left. The link between the two is the hard part,
+    and it is the part this exists to make.</p>
+    <div class="grid g3" style="margin-top:26px">
+      <div class="card accent">
+        <h3>Detect</h3>
+        <p>Segment radar into sea, look-alike and mineral oil. Measure the geometry
+        of what is found.</p>
+      </div>
+      <div class="card accent">
+        <h3>Hindcast</h3>
+        <p>Run the slick backwards through real currents and wind to an origin
+        zone and an origin time, then forwards to where it is going.</p>
+      </div>
+      <div class="card accent">
+        <h3>Attribute</h3>
+        <p>Reconstruct the traffic in that zone and window, discard the
+        irrelevant, and score what is left on evidence a human can check.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 ------------------------------------------------------------------ -->
+<section class="slide" id="s3">
+  <div class="wrap">
+    <p class="eyebrow">Architecture</p>
+    <h2>Everything fetched before, nothing fetched during</h2>
+    <figure>
+      <svg viewBox="0 0 1180 540" role="img"
+        aria-label="Architecture: network-facing scripts cache Sentinel-1, Sentinel-2, ERA5, Copernicus Marine, AIS and basemap tiles to disk; the runtime reads only that cache and runs a ten-stage pipeline from detection through drift to attribution; model training happens on Kaggle GPUs and returns a checkpoint through Hugging Face.">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6"
+                  markerHeight="6" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <!-- offline boundary -->
+        <rect x="8" y="112" width="1164" height="330" rx="4" fill="none"
+              stroke="#42D4E0" stroke-width="1" stroke-dasharray="7 5" opacity=".55"/>
+        <text x="20" y="132" font-family="IBM Plex Mono, monospace" font-size="11"
+              fill="#42D4E0" letter-spacing="1.6">OFFLINE BOUNDARY, no socket is opened below this line</text>
+
+        <!-- sources -->
+        <text x="8" y="26" font-family="IBM Plex Mono, monospace" font-size="11"
+              fill="#5F7789" letter-spacing="1.6">EXTERNAL SOURCES, reached only by scripts/, before the demo</text>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#DCE9F3">
+          <rect x="8" y="38" width="176" height="30" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="20" y="57">Sentinel-1 RTC</text>
+          <rect x="196" y="38" width="176" height="30" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="208" y="57">Sentinel-2 L2A</text>
+          <rect x="384" y="38" width="176" height="30" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="396" y="57">ERA5 wind</text>
+          <rect x="572" y="38" width="200" height="30" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="584" y="57">Copernicus Marine</text>
+          <rect x="784" y="38" width="188" height="30" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="796" y="57">MarineCadastre AIS</text>
+          <rect x="984" y="38" width="188" height="30" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="996" y="57">Zenodo SAR corpus</text>
+        </g>
+
+        <!-- arrows into cache -->
+        <g stroke="#42D4E0" stroke-width="1.2" marker-end="url(#ar)" color="#42D4E0" opacity=".8">
+          <line x1="96"  y1="68" x2="96"  y2="150"/>
+          <line x1="284" y1="68" x2="284" y2="150"/>
+          <line x1="472" y1="68" x2="472" y2="150"/>
+          <line x1="672" y1="68" x2="672" y2="150"/>
+          <line x1="878" y1="68" x2="878" y2="150"/>
+        </g>
+        <text x="500" y="103" font-family="IBM Plex Mono, monospace" font-size="10.5"
+              fill="#8FA8BC">scripts/ fetch once</text>
+
+        <!-- cache -->
+        <rect x="28" y="156" width="890" height="58" rx="3" fill="#0E1822" stroke="#42D4E0" stroke-width="1.2"/>
+        <text x="44" y="180" font-family="IBM Plex Mono, monospace" font-size="12.5" fill="#42D4E0">data/  on-disk cache</text>
+        <text x="44" y="200" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#8FA8BC">sar · optical · metocean · ais.sqlite · land · basemap ,  the demo laptop carries only this</text>
+
+        <!-- pipeline -->
+        <text x="28" y="248" font-family="IBM Plex Mono, monospace" font-size="11"
+              fill="#5F7789" letter-spacing="1.6">RUNTIME PIPELINE, ten traced stages</text>
+        <g font-family="IBM Plex Mono, monospace" font-size="11">
+          <rect x="28" y="258" width="150" height="62" rx="3" fill="#152331" stroke="#FF2DC8" stroke-width="1.2"/>
+          <text x="42" y="280" fill="#FF2DC8">DETECT</text>
+          <text x="42" y="298" fill="#8FA8BC" font-size="10">U-Net++ / dB</text>
+          <text x="42" y="312" fill="#8FA8BC" font-size="10">3-class, 512 tiles</text>
+
+          <rect x="198" y="258" width="150" height="62" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="212" y="280" fill="#DCE9F3">CHAR</text>
+          <text x="212" y="298" fill="#8FA8BC" font-size="10">area, Feret, PCA</text>
+          <text x="212" y="312" fill="#8FA8BC" font-size="10">land rejection</text>
+
+          <rect x="368" y="258" width="150" height="62" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="382" y="280" fill="#DCE9F3">EO</text>
+          <text x="382" y="298" fill="#8FA8BC" font-size="10">optical cross-check</text>
+          <text x="382" y="312" fill="#8FA8BC" font-size="10">per polygon</text>
+
+          <rect x="538" y="258" width="150" height="62" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="552" y="280" fill="#DCE9F3">HINDCAST</text>
+          <text x="552" y="298" fill="#8FA8BC" font-size="10">RK2, 50 particles</text>
+          <text x="552" y="312" fill="#8FA8BC" font-size="10">origin zone + time</text>
+
+          <rect x="708" y="258" width="150" height="62" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="722" y="280" fill="#DCE9F3">FORECAST</text>
+          <text x="722" y="298" fill="#8FA8BC" font-size="10">36 h cone</text>
+          <text x="722" y="312" fill="#8FA8BC" font-size="10">coast impact</text>
+
+          <rect x="878" y="258" width="150" height="62" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="892" y="280" fill="#DCE9F3">AIS</text>
+          <text x="892" y="298" fill="#8FA8BC" font-size="10">tracks in zone</text>
+          <text x="892" y="312" fill="#8FA8BC" font-size="10">+ window</text>
+
+          <rect x="1048" y="258" width="124" height="62" rx="3" fill="#152331" stroke="#42D4E0" stroke-width="1.2"/>
+          <text x="1062" y="280" fill="#42D4E0">SCORE</text>
+          <text x="1062" y="298" fill="#8FA8BC" font-size="10">4 weighted</text>
+          <text x="1062" y="312" fill="#8FA8BC" font-size="10">components</text>
+        </g>
+        <g stroke="#5F7789" stroke-width="1.1" marker-end="url(#ar)" color="#5F7789">
+          <line x1="178" y1="289" x2="196" y2="289"/>
+          <line x1="348" y1="289" x2="366" y2="289"/>
+          <line x1="518" y1="289" x2="536" y2="289"/>
+          <line x1="688" y1="289" x2="706" y2="289"/>
+          <line x1="858" y1="289" x2="876" y2="289"/>
+          <line x1="1028" y1="289" x2="1046" y2="289"/>
+        </g>
+        <g stroke="#42D4E0" stroke-width="1.1" marker-end="url(#ar)" color="#42D4E0" opacity=".75">
+          <line x1="103" y1="214" x2="103" y2="256"/>
+          <line x1="443" y1="214" x2="443" y2="256"/>
+          <line x1="613" y1="214" x2="613" y2="256"/>
+          <line x1="783" y1="214" x2="783" y2="256"/>
+          <line x1="900" y1="214" x2="900" y2="256"/>
+        </g>
+
+        <!-- console -->
+        <rect x="28" y="352" width="1144" height="56" rx="3" fill="#0E1822" stroke="#1E3141"/>
+        <text x="44" y="376" font-family="IBM Plex Mono, monospace" font-size="12.5" fill="#DCE9F3">Operations console, map, verdict card, per-stage timings, time scrubber, PDF note</text>
+        <text x="44" y="396" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#8FA8BC">shows which detector ran, where the AIS came from, and what it could not determine</text>
+        <line x1="600" y1="322" x2="600" y2="350" stroke="#5F7789" stroke-width="1.1"
+              marker-end="url(#ar)" color="#5F7789"/>
+
+        <!-- training loop -->
+        <text x="28" y="462" font-family="IBM Plex Mono, monospace" font-size="11"
+              fill="#5F7789" letter-spacing="1.6">TRAINING, off the laptop entirely, never on the request path</text>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#DCE9F3">
+          <rect x="28" y="472" width="210" height="34" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="42" y="494">Zenodo Part III · 9.86 GB</text>
+          <rect x="286" y="472" width="210" height="34" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="300" y="494">Kaggle T4 · 1,164 tiles</text>
+          <rect x="544" y="472" width="210" height="34" rx="3" fill="#152331" stroke="#1E3141"/>
+          <text x="558" y="494">Hugging Face Hub</text>
+          <rect x="802" y="472" width="238" height="34" rx="3" fill="#152331" stroke="#FF2DC8" stroke-width="1.2"/>
+          <text x="816" y="494" fill="#FF2DC8">oil_unet_best.pt · 26.6 MB</text>
+        </g>
+        <g stroke="#5F7789" stroke-width="1.1" marker-end="url(#ar)" color="#5F7789">
+          <line x1="238" y1="489" x2="284" y2="489"/>
+          <line x1="496" y1="489" x2="542" y2="489"/>
+          <line x1="754" y1="489" x2="800" y2="489"/>
+        </g>
+        <path d="M921 472 L921 430 L600 430 L600 410" fill="none" stroke="#FF2DC8"
+              stroke-width="1.1" marker-end="url(#ar)" color="#FF2DC8" opacity=".8"/>
+        <text x="640" y="424" font-family="IBM Plex Mono, monospace" font-size="10"
+              fill="#FF2DC8">copied to the laptop once</text>
+      </svg>
+      <figcaption>
+        The dashed line is enforced, not aspirational: a test parses every module
+        under <code>app/</code> and fails the build if one imports a network client,
+        and a second test imports the served app and inspects
+        <code>sys.modules</code>. Training never touches the request path.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 4 ------------------------------------------------------------------ -->
+<section class="slide" id="s4">
+  <div class="wrap">
+    <p class="eyebrow">Data · what is actually wired in</p>
+    <h2>Real sources, and the ones deliberately left out</h2>
+    <div class="scroll"><table>
+      <tr><th>Source</th><th>Used</th><th>What for</th><th>Evidence on disk</th></tr>
+      <tr><td>Zenodo SAR corpus, Part III</td><td class="m yes">yes</td><td>U-Net training</td><td class="m">1,164 tiles</td></tr>
+      <tr><td>Zenodo Parts I &amp; II</td><td class="m no">no</td><td>63 GB; Part III carries all three classes</td><td class="m">, </td></tr>
+      <tr><td>Sentinel-1 RTC (Planetary Computer)</td><td class="m yes">yes</td><td>4 demo scenes</td><td class="m">33.6 MB each</td></tr>
+      <tr><td>Sentinel-2 L2A</td><td class="m yes">yes</td><td>optical cross-check</td><td class="m">22.3 MB</td></tr>
+      <tr><td>ERA5 10 m wind</td><td class="m yes">yes</td><td>drift, every scene</td><td class="m">5 cubes</td></tr>
+      <tr><td>Copernicus Marine currents</td><td class="m yes">yes</td><td>drift, 3 of 4 scenes</td><td class="m">6-hourly</td></tr>
+      <tr><td>Open-Meteo marine</td><td class="m part">fallback</td><td>unused: CMEMS covers it</td><td class="m">, </td></tr>
+      <tr><td>MarineCadastre AIS</td><td class="m yes">yes</td><td>attribution</td><td class="m">435,823 rows</td></tr>
+      <tr><td>Simulated AIS</td><td class="m part">2 scenes</td><td>permitted by the PS where no feed exists</td><td class="m">5,845 rows</td></tr>
+      <tr><td>aisstream.io live feed</td><td class="m part">built</td><td>recorder verified, not in demo data</td><td class="m">, </td></tr>
+      <tr><td>Natural Earth land + lakes</td><td class="m yes">yes</td><td>land mask, coast impact</td><td class="m">49 + 3 polys</td></tr>
+      <tr><td>Esri / OpenSeaMap tiles</td><td class="m yes">yes</td><td>offline basemap</td><td class="m">6,976 tiles</td></tr>
+    </table></div>
+    <p style="margin-top:20px;font-size:14px">Two models exist. <code>oil_unet_best.pt</code>
+    runs the demo; the dB threshold baseline takes over automatically when no
+    checkpoint is present and is scored beside the model in every training report.
+    A third sits in <code>models/quarantine/</code> and is never loaded, kept so the
+    failure it represents can be checked rather than taken on trust.</p>
+  </div>
+</section>
+
+<!-- 5 ------------------------------------------------------------------ -->
+<section class="slide" id="s5">
+  <div class="wrap">
+    <p class="eyebrow">The part worth telling</p>
+    <h2>Three checkpoints. Two were confidently wrong.</h2>
+    <div class="grid g3">
+      <div class="card bad">
+        <h3>v1, IoU 0.857</h3>
+        <p>Returned ~500 km² of oil on 484 km² chips, the clean-water control
+        included. Training held 400 oil tiles, 150 sea, and <strong>zero</strong> tiles
+        of plain open water; class weights then pushed 6.25× further toward oil.</p>
+      </div>
+      <div class="card bad">
+        <h3>v2, IoU 0.889</h3>
+        <p>Rebalanced data, neutral weights, a new gate. Same failure. The cause was
+        neither: Zenodo ships bands as <strong>(VH, VV)</strong> and the scene fetcher
+        read <strong>(VV, VH)</strong>. Trained on dark-first, asked to predict
+        bright-first.</p>
+      </div>
+      <div class="card good">
+        <h3>v3, shipped</h3>
+        <p>Ordering bands by median brightness, co-pol exceeds cross-pol over water
+        in every sensor, fixed it with <strong>no retraining at all</strong>. The
+        control scene returns nothing.</p>
+      </div>
+    </div>
+    <p style="margin-top:24px" class="lead">The lesson is not "we fixed a bug". It is
+    that <strong>IoU could not see the failure</strong>. Measured only on tiles selected
+    for containing oil, it rises as a model predicts more oil.</p>
+    <div class="card accent" style="margin-top:14px">
+      <p><code>water_false_oil</code>, the fraction of genuinely-water pixels called
+      oil, is now a hard gate at 0.02. An epoch above it cannot become the shipped
+      checkpoint however good its IoU, and if no epoch clears it the run writes
+      nothing and says so. On v1 that number was ≈1.0.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 6 ------------------------------------------------------------------ -->
+<section class="slide" id="s6">
+  <div class="wrap">
+    <p class="eyebrow">Results · four scenes, run end to end</p>
+    <h2>Including one that must stay silent</h2>
+    <div class="scroll"><table>
+      <tr><th>Scene</th><th>Polys</th><th>Oil km²</th><th>Ashore rejected</th><th>Currents</th><th>AIS</th><th>Optical</th><th>Rank 1</th></tr>
+      <tr><td class="m">santa_barbara_seeps</td><td class="m">2</td><td class="m">0.373</td><td class="m">0</td><td class="m yes">CMEMS</td><td class="m yes">real</td><td class="m">17 h · 1 agree</td><td>FISH TWO 67.0</td></tr>
+      <tr><td class="m">gom_mc20_chronic_slick</td><td class="m">29</td><td class="m">5.149</td><td class="m">0</td><td class="m yes">CMEMS</td><td class="m yes">real</td><td class="m">28 obscured</td><td>JOSEPH ANTHONY 73.8</td></tr>
+      <tr><td class="m">caspian_baku_seeps</td><td class="m">1</td><td class="m">0.074</td><td class="m part">2</td><td class="m part">wind only</td><td class="m part">simulated</td><td class="m">3 agree</td><td>MT TRIDENT GLORY 89.8</td></tr>
+      <tr><td class="m">arabian_sea_mumbai</td><td class="m">0</td><td class="m">0.000</td><td class="m">0</td><td class="m">, </td><td class="m">, </td><td class="m">, </td><td>none</td></tr>
+    </table></div>
+    <div class="grid g2" style="margin-top:22px">
+      <div class="card good">
+        <h3>The control scene is the real test</h3>
+        <p>Arabian Sea returns no polygons, no drift, no suspects. Every broken
+        checkpoint painted it solid oil. A detector that cannot say "nothing here"
+        is not a detector.</p>
+      </div>
+      <div class="card warn">
+        <h3>Santa Barbara is the full stack</h3>
+        <p>Real radar, real Copernicus currents, real ERA5 wind, real MarineCadastre
+        AIS, and real optical 17 hours from the radar pass at 0% cloud. Nothing in
+        it is simulated.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 ------------------------------------------------------------------ -->
+<section class="slide" id="s7">
+  <div class="wrap">
+    <p class="eyebrow">Attribution</p>
+    <h2>A ranked suspect, with its reasons attached</h2>
+    <div class="grid g2">
+      <div>
+        <div class="scroll"><table>
+          <tr><th>Component</th><th>Weight</th><th>Basis</th></tr>
+          <tr><td class="m">proximity</td><td class="m">0.40</td><td>exp(−d/3 km) to the origin zone boundary</td></tr>
+          <tr><td class="m">behaviour</td><td class="m">0.25</td><td>max of four anomaly detectors</td></tr>
+          <tr><td class="m">type</td><td class="m">0.20</td><td>published prior for the decoded AIS type</td></tr>
+          <tr><td class="m">trajectory</td><td class="m">0.15</td><td>course alignment at closest approach</td></tr>
+        </table></div>
+        <p style="margin-top:16px;font-size:14px">Scores are an absolute percentage of
+        the weight sum, never min-maxed across the batch, so a scene with no real
+        suspect cannot manufacture a convincing one.</p>
+      </div>
+      <div class="card accent">
+        <h3>The behaviour detectors</h3>
+        <p><strong>1.</strong> Speed inside the operational-discharge band.<br>
+        <strong>2.</strong> Course change around closest approach.<br>
+        <strong>3.</strong> Speed drop across the window.<br>
+        <strong>4.</strong> An <strong>AIS gap whose bridged segment passes near the
+        origin zone</strong>, going dark, which is the one that matters most.</p>
+        <p style="margin-top:12px">Every hit emits a reason string:
+        <code>ais_gap_47min_within_2.3km</code>. The funnel is reported too,
+        considered, kept, dropped outside radius, dropped for too few points, so a
+        reviewer can see exactly what was discarded.</p>
+      </div>
+    </div>
+    <p style="margin-top:22px;font-size:14px;color:var(--amber)">
+      The UI says it in the panel and the PDF repeats it: <strong>ranked likelihood
+      for investigation, not proof of discharge.</strong></p>
+  </div>
+</section>
+
+<!-- 8 ------------------------------------------------------------------ -->
+<section class="slide" id="s8">
+  <div class="wrap">
+    <p class="eyebrow">Conformance</p>
+    <h2>Fifteen clauses, and two limits that are not ours</h2>
+    <div class="grid g4">
+      <div class="card good"><div class="stat g">15</div><div class="stat-l">Clauses met</div></div>
+      <div class="card"><div class="stat">106</div><div class="stat-l">Tests, ruff clean</div></div>
+      <div class="card"><div class="stat">10</div><div class="stat-l">Traced stages</div></div>
+      <div class="card"><div class="stat a">20-35 s</div><div class="stat-l">Per scene, CPU</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:22px">
+      <div class="card warn">
+        <h3>No Caspian current model exists</h3>
+        <p>Copernicus returns 306 cells and 306 NaNs over the Baku footprint and
+        publishes no regional product. HYCOM returns its fill value at the same
+        point while returning a true −0.48 m/s in the Gulf. Two independent models
+        agree the field does not exist, so that scene says <em>wind-driven only</em>
+        on every run rather than showing a plausible zero.</p>
+      </div>
+      <div class="card warn">
+        <h3>EO corroborates, it does not detect</h3>
+        <p>No paired labelled SAR/optical oil dataset exists to train a fused
+        detector, and inventing supervision is exactly what produced the first
+        quarantined checkpoint. So optical compares inside each polygon against a
+        ring around it and reports agreement. <strong>Nothing is added, removed or
+        reweighted by it.</strong></p>
+      </div>
+    </div>
+    <p style="margin-top:20px;font-size:14px">Also stated rather than buried: the
+    archive's look-alike masks are measurably empty, so the trained model's class-1
+    head is unsupervised and those chips are used as hard negatives. The dB baseline
+    still separates look-alikes, and the UI still draws them.</p>
+  </div>
+</section>
+
+<!-- 9 ------------------------------------------------------------------ -->
+<section class="slide" id="s9">
+  <div class="wrap">
+    <p class="eyebrow">Why it should be trusted</p>
+    <h2>It reports what it could not determine</h2>
+    <div class="grid g3">
+      <div class="card">
+        <h3>Provenance on every run</h3>
+        <p>Which detector ran. Whether the AIS was real or simulated. Whether the
+        basin had currents. How far the optical was from the radar pass.</p>
+      </div>
+      <div class="card">
+        <h3>Failures kept, not deleted</h3>
+        <p>Both broken checkpoints sit in <code>models/quarantine/</code> with a README
+        explaining what they got wrong, so the claims here can be checked.</p>
+      </div>
+      <div class="card">
+        <h3>The journal</h3>
+        <p>1,748 lines, append-only, 20 entries, including every bug that shipped
+        and was caught, with the measurement that caught it.</p>
+      </div>
+    </div>
+    <div class="card accent" style="margin-top:24px">
+      <p style="font-size:15px"><strong>The land mask is the clearest example.</strong>
+      The coastline file that shipped called the Santa Barbara mountains sea and open
+      Caspian water land, wrong in both directions. Rebuilt from Natural Earth, the
+      first attempt read 144 of 144 sample points across the Caspian as land, because
+      Natural Earth models inland seas as <em>holes</em> and the builder was reading
+      only exterior rings. Now 8/8 known points are correct, and detection drops
+      polygons that fall ashore: the Caspian had two, on the Absheron peninsula.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 ----------------------------------------------------------------- -->
+<section class="slide" id="s10">
+  <div class="wrap">
+    <p class="eyebrow">Run it</p>
+    <h2>One command, no network</h2>
+    <div class="card" style="max-width:760px">
+      <p style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--cyan)">
+        python scripts/bootstrap_demo.py<br>
+        <span style="color:var(--ink-3)"># once, online, fetches every source above</span><br><br>
+        python -m uvicorn app.main:app --port 8100<br>
+        <span style="color:var(--ink-3)"># thereafter, airplane mode</span>
+      </p>
+    </div>
+    <div class="grid g3" style="margin-top:26px">
+      <div class="card"><div class="stat c">4</div><div class="stat-l">Scenes indexed</div></div>
+      <div class="card"><div class="stat c">638</div><div class="stat-l">Vessels in store</div></div>
+      <div class="card"><div class="stat c">26.6 MB</div><div class="stat-l">Checkpoint carried</div></div>
+    </div>
+    <p style="margin-top:30px;font-size:14px;color:var(--ink-3);font-family:'IBM Plex Mono',monospace">
+      TideTrace · SIH 2026 · PS 26143 · National Technical Research Organisation<br>
+      Contains modified Copernicus Sentinel data · Natural Earth · MarineCadastre.gov (NOAA/BOEM) · Esri · OpenSeaMap
+    </p>
+  </div>
+</section>
+
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="Previous slide">◀</button>
+  <button id="next" aria-label="Next slide">▶</button>
+  <span><b id="cur">1</b> / 10</span>
+  <div class="rail"><i id="bar"></i></div>
+  <span id="title">Title</span>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var names = ["Title", "The problem", "Architecture", "Data", "Three checkpoints",
+               "Results", "Attribution", "Conformance", "Trust", "Run it"];
+  var i = 0;
+
+  function go(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides[i].scrollIntoView({ behavior: "smooth", block: "start" });
+    paint();
+  }
+  function paint() {
+    document.getElementById("cur").textContent = String(i + 1);
+    document.getElementById("bar").style.width =
+      ((i / (slides.length - 1)) * 100) + "%";
+    document.getElementById("title").textContent = names[i] || "";
+  }
+  document.getElementById("next").addEventListener("click", function () { go(i + 1); });
+  document.getElementById("prev").addEventListener("click", function () { go(i - 1); });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); go(i + 1); }
+    if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); go(i - 1); }
+    if (e.key === "Home") { e.preventDefault(); go(0); }
+    if (e.key === "End") { e.preventDefault(); go(slides.length - 1); }
+  });
+
+  // Keep the counter honest when the reader simply scrolls.
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          var n = slides.indexOf(en.target);
+          if (n >= 0) { i = n; paint(); }
+        }
+      });
+    }, { threshold: 0.5 });
+    slides.forEach(function (s) { io.observe(s); });
+  }
+  paint();
+})();
+</script>
