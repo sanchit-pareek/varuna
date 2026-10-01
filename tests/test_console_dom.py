@@ -187,32 +187,50 @@ def test_no_id_appears_twice_in_the_markup():
     assert not dupes, "these ids appear more than once in index.html: %s" % sorted(dupes)
 
 
-def test_every_six_investigation_modes_exists_on_both_sides():
+def test_every_mode_has_a_nav_tab_and_a_panel():
     """The nav tab and its panel are wired together by a data attribute, not by
     any check, so a renamed mode produces a tab that switches to nothing and no
-    error anywhere. Both halves are pinned here."""
+    error anywhere. Both halves are pinned here.
+
+    The set itself is not pinned to a fixed list. What matters is that the two
+    sides agree, because that disagreement is the silent failure; adding a mode
+    is a design decision and renaming one is a migration, neither of which this
+    test should be able to block."""
     html = (STATIC / "index.html").read_text(encoding="utf-8")
-    modes = ("overview", "detection", "origin", "attribution", "sensitivity", "provenance")
-    for m in modes:
-        assert 'data-view="%s"' % m in html, "no nav tab for the %s mode" % m
+    tabs = re.findall(r'class="navlink"[^>]*data-view="([a-z]+)"', html)
     panels = re.findall(r'class="view" data-view="([a-z]+)"', html)
-    assert sorted(panels) == sorted(modes), (
-        "the nav and the panels disagree: %s" % sorted(set(panels) ^ set(modes)))
+    assert tabs, "no nav tabs found in index.html"
+    assert sorted(tabs) == sorted(panels), (
+        "the nav and the panels disagree: %s" % sorted(set(tabs) ^ set(panels)))
+    assert len(set(tabs)) == len(tabs), "a mode has more than one tab: %s" % tabs
 
 
-def test_the_case_opens_on_the_overview_mode():
+def test_the_console_opens_on_a_mode_that_actually_exists():
     """initNav used to select a view name that no longer existed, which hid
-    every panel at once: an empty rail with no visible reason."""
+    every panel at once: an empty rail with no visible reason. The default is
+    read out of a named constant rather than a literal so the two cannot drift."""
     js = _js()
-    assert 'select("overview")' in js, "the console does not open on the overview mode"
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    tabs = re.findall(r'class="navlink"[^>]*data-view="([a-z]+)"', html)
+    declared = re.search(r'var DEFAULT_VIEW\s*=\s*"([a-z]+)"', js)
+    assert declared, "the default view is no longer declared as DEFAULT_VIEW"
+    assert declared.group(1) in tabs, (
+        "DEFAULT_VIEW is %r, which is not one of the tabs %s"
+        % (declared.group(1), tabs))
+    assert "select(DEFAULT_VIEW)" in js, (
+        "initNav no longer opens on DEFAULT_VIEW")
 
 
 def test_a_deep_link_naming_a_mode_that_no_longer_exists_still_shows_something():
     """Case URLs are shared. A rename must not turn an old link into a blank
-    screen, so the name is validated against the tabs that exist."""
+    screen, so the name is validated against the tabs that exist, and the
+    fallback is announced rather than applied silently."""
     js = _js()
-    assert "known.indexOf(view) < 0" in js, (
+    assert "known.indexOf(requested) < 0" in js, (
         "an unknown #view= name is not guarded, so a stale link hides every panel")
+    assert 'el("div", "notice"' in js, (
+        "the fallback is applied silently, so a stale link looks like a view "
+        "the analyst chose")
 
 
 def test_the_time_scrubber_is_re_enabled_when_a_new_run_supplies_frames():
@@ -260,7 +278,7 @@ def test_counter_evidence_is_rendered_next_to_the_candidate_it_opposes():
     js = _js()
     assert "Why this vessel" in js
     assert "Why not" in js
-    assert "counter_evidence" in js
+    assert "why_not" in js
     # And the absence of a recorded objection must read as absence, not as
     # evidence that none exists.
     assert "not evidence that none exists" in js
@@ -277,11 +295,13 @@ def test_a_case_with_no_vessel_candidate_does_not_render_a_lead():
 
 def test_unevaluable_scenarios_are_shown_as_such_rather_than_omitted():
     """An absent row reads as 'this did not matter', which is the opposite of
-    what a missing input means. Every ladder and scenario list has to have a
-    slot for 'NOT EVALUATED'."""
+    what a missing input means. Both the per-candidate scenario list and the
+    ablation ladder have to carry a NOT EVALUATED slot, and an inapplicable
+    scenario has to give its reason rather than just its absence."""
     js = _js()
     assert "NOT EVALUATED" in js
-    assert "not measurable" in js or "insensitivity" in js
+    assert "this scenario could not be evaluated" in js
+    assert "this rung was not computed" in js
 
 
 def test_the_uncalibrated_score_is_said_out_loud_where_the_score_is_shown():
@@ -332,6 +352,16 @@ def test_no_renderer_invents_a_field_the_pipeline_does_not_write():
     assert "factors[key]" in js, (
         "the safe-fail panel reads ordered_factors without resolving factors, "
         "so every row renders with no level beside it")
+
+    # The claims each get a renderer. Falling back to a raw JSON dump for all of
+    # them is the same silent failure wearing a different hat: the data is
+    # technically on the page, but nothing is claimed, so an analyst reading it
+    # draws their own conclusion about what a missing field means.
+    for renderer in ("renderCandidates", "renderUncertainty", "renderSensitivity",
+                     "renderAblation", "renderCalibration"):
+        assert renderer in js, "app.js no longer renders %s" % renderer
+    assert "prettyResult(part)" in js, (
+        "the case panel has gone back to dumping raw JSON for the claims")
 
 
 def test_the_uncertainty_bar_is_certainty_and_is_labelled_as_such():

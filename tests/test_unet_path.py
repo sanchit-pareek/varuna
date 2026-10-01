@@ -236,3 +236,89 @@ def test_prepare_input_repeats_the_co_pol_band():
     # Feeding the same scene in the other band order must not change anything.
     other = infer.prepare_input(np.stack([cross, co]), norm)
     assert np.allclose(out, other)
+
+
+def test_model_discovery_status_reflects_presence_and_absence(tmp_path, untrained_checkpoint, monkeypatch):
+    """model.status() must accurately report torch, smp, device, and checkpoint existence."""
+    from app import config
+    from app.ml import model as model_mod
+
+    # Case 1: absent
+    non_existent = Path(tmp_path) / "absent_checkpoint.pt"
+    monkeypatch.setattr(config, "CHECKPOINT", non_existent)
+    st = model_mod.status()
+    assert st["torch"] is True
+    assert st["smp"] is True
+    assert st["checkpoint_present"] is False
+    assert st["checkpoint_mb"] is None
+
+    # Case 2: present
+    monkeypatch.setattr(config, "CHECKPOINT", untrained_checkpoint)
+    st_present = model_mod.status()
+    assert st_present["checkpoint_present"] is True
+    assert st_present["checkpoint_mb"] is not None
+    assert st_present["checkpoint_mb"] > 0
+
+
+def test_model_build_validates_architecture_and_parameters():
+    """Architecture builder must create the expected UnetPlusPlus network and reject unknown archs."""
+    from app.ml import model as model_mod
+
+    net = model_mod.build(
+        arch="UnetPlusPlus",
+        encoder="timm-efficientnet-b0",
+        encoder_weights=None,
+        classes=3,
+        in_channels=3,
+    )
+    assert net is not None
+    # Verify input layer accepts 3 channels
+    first_conv = getattr(net.encoder, "conv_stem", None)
+    if first_conv is not None:
+        assert first_conv.in_channels == 3
+
+    # Must raise ValueError for unsupported architecture
+    with pytest.raises(ValueError, match="unsupported architecture"):
+        model_mod.build(arch="NonExistentArch")
+
+
+def test_checkpoint_loading_missing_file_raises_explicit_filenotfound():
+    """Missing checkpoint must raise FileNotFoundError explicitly rather than returning empty/none."""
+    from app.ml import model as model_mod
+
+    missing_path = Path("models/definitely_missing_checkpoint_12345.pt")
+    with pytest.raises(FileNotFoundError, match="checkpoint not found"):
+        model_mod.load_checkpoint(missing_path)
+
+
+def test_fallback_behavior_when_checkpoint_missing_records_explicit_reason(tmp_path, monkeypatch):
+    """When checkpoint is missing, segment_scene must fall back and record FileNotFoundError."""
+    from app import config
+    from app.ml import infer
+
+    missing_path = Path(tmp_path) / "missing.pt"
+    monkeypatch.setattr(config, "CHECKPOINT", missing_path)
+    infer.reset_model_cache()
+    try:
+        scene = np.full((2, 128, 128), -20.0, dtype=np.float32)
+        res = infer.segment_scene(scene, prefer_model=True)
+        assert res["method"] == "sigma0_threshold_baseline"
+        assert "FileNotFoundError" in (res["fallback_reason"] or "")
+    finally:
+        infer.reset_model_cache()
+
+
+def test_inference_determinism_and_bounds(untrained_checkpoint):
+    """run_unet must produce deterministic outputs with valid probabilities in [0, 1]."""
+    from app.ml import infer, model as model_mod
+
+    loaded = model_mod.load_checkpoint(untrained_checkpoint, map_location="cpu")
+    scene = np.random.default_rng(42).normal(-18.0, 3.0, (2, 256, 256)).astype(np.float32)
+
+    res1 = infer.run_unet(scene, loaded, tile=256, overlap=64)
+    res2 = infer.run_unet(scene, loaded, tile=256, overlap=64)
+
+    assert np.allclose(res1["probs"], res2["probs"], atol=1e-6)
+    assert (res1["probs"] >= 0.0).all()
+    assert (res1["probs"] <= 1.0).all()
+

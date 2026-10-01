@@ -309,16 +309,10 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
    colour that means "this is wrong". */
 .src.bad .nm, .src.bad .vl { color: var(--bad); }
 
-/* ================================================================ centre
-   Map-first. The three rows are the case header, the chart, and the time
-   axis. The three summary cards that used to sit in a fixed strip under the
-   map now live in the right rail under the mode that explains them, because a
-   card about metocean belongs next to the drift model that consumed it rather
-   than permanently occupying 200px of vertical space under every mode. The
-   chart takes the height the strip used to hold. */
+/* ================================================================ centre */
 .centre {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   background: var(--bg);
   min-height: 0;
   min-width: 0;
@@ -352,20 +346,6 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
 
 #mapwrap { position: relative; overflow: hidden; min-height: 0; }
 #map { position: absolute; inset: 0; background: #0b141c; }
-
-/* Probe mode. Ticking the probe box adds this class to the map element so the
-   next click runs a drift and AIS run at that point instead of being ignored.
-   The class was set by the script and had no rule anywhere, so the cursor
-   never changed and there was nothing on screen saying the map was now armed:
-   the operator had a checkbox they were told about and no way to see that the
-   click they were about to make would do something different. A crosshair and
-   a tinted frame are the whole difference between "armed" and "not". */
-#map.probing { cursor: crosshair; }
-#map.probing::after {
-  content: "";
-  position: absolute; inset: 0; z-index: 450; pointer-events: none;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
-}
 
 .map-hud {
   position: absolute; z-index: 500;
@@ -492,13 +472,10 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
 
 /* ============================================================== evidence */
 /* The finding, as a survey form rather than a paragraph.
-
-   The container class in the markup is `verdict-facts`, not `facts`. The grid
-   was only ever written against `.facts`, so the finding rendered as unstyled
-   block flow: four label/value pairs stacked full width with no columns, no
-   cell ground and no rule between them. It is the one element in the rail that
-   has to read as a form, so the selector takes both names. */
-.facts, .verdict-facts {
+     The renderer writes `verdict-facts`; `facts` is the older name kept so a
+     cached stylesheet still styles the grid while the new one loads. */
+.facts,
+.verdict-facts {
   display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
   background: var(--line-soft); border: 1px solid var(--line-soft);
   border-radius: var(--r); overflow: hidden;
@@ -652,298 +629,11 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
   border-color: var(--line) !important; color: var(--ink-2) !important;
   font-family: var(--mono); font-size: 9.5px;
 }
-/* ================================================== investigation panels
-   The mode-specific blocks. One rule each, grouped by the claim the panel
-   makes, because these are the parts of the console that have to be read
-   rather than glanced at.
-
-   Two conventions run through all of them. A band is always labelled in words,
-   never by colour alone, because HIGH / MEDIUM / LOW and a five-bar meter mean
-   different things and neither means probability. And anything that could not
-   be computed is rendered as an explicit "not evaluated" in the same place a
-   result would be, never omitted: an absent row reads as "this did not
-   matter", which is the opposite of what a missing input means. */
-
-#safefail, #uncertainty, #why, #sensitivity, #ablation, #calibration,
-#provenance, #events, #shape, #optical, #detector-meta,
-.uchain, .sensitivity, .ablation, .calibration, .provenance, .events,
-.case-list, .reliability, .missing, .body {
-  display: flex; flex-direction: column; gap: 6px;
-}
-
-/* ---- case index --------------------------------------------------------
-   The case list opens on the work that already exists. Each row leads with
-   the quality band, because a list of candidate counts invites reading an
-   empty case as a strong one, and the count of recorded objections sits in the
-   row so a lead is never shown without what has been said against it. */
-.case-row {
-  display: grid; grid-template-columns: auto 1fr auto; gap: 8px;
-  align-items: center;
-  width: 100%; padding: 7px 9px; text-align: left;
-  background: var(--panel-2); border: 1px solid transparent;
-  border-left: 2px solid var(--line); border-radius: var(--r);
-  cursor: pointer; font: inherit; color: inherit;
-}
-.case-row:hover { background: var(--raised); }
-.case-row .cmain { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.case-row .cid { font-size: 11.5px; font-weight: 600; color: var(--ink);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.case-row .ctop { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.case-row .cdt { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
-
-/* ---- quality band ------------------------------------------------------
-   One component, used in the case header and on every case row, so the band
-   looks the same wherever it appears. The word is in the chip: the colour is
-   reinforcement, not the message. */
-.cband {
-  display: inline-flex; align-items: center;
-  font-size: 9px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
-  padding: 3px 7px; border-radius: 3px; white-space: nowrap;
-  background: var(--raised); color: var(--ink-3);
-  border: 1px solid var(--line);
-}
-.cband.has-state { border-style: dashed; }
-.cband.high    { color: var(--cyan);   border-color: color-mix(in srgb, var(--cyan) 40%, var(--line)); }
-.cband.medium  { color: var(--warn);   border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
-.cband.low     { color: var(--bad);    border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
-.cband.unrated { color: var(--ink-3); }
-
-/* ---- case state and quality ------------------------------------------- */
-.sf-state, .sf-band {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-  padding: 7px 9px; border-radius: var(--r);
-  background: var(--panel-2); border: 1px solid var(--line-soft);
-  border-left: 2px solid var(--ink-3);
-}
-.sf-state b, .sf-band b { font-size: 12px; font-weight: 600; color: var(--ink); }
-.sf-label {
-  font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
-  white-space: nowrap;
-}
-.sf-state.no-oil-detected  { border-left-color: var(--cyan); }
-.sf-state.insufficient-evidence { border-left-color: var(--warn); }
-.sf-state.no-reliable-vessel-candidate { border-left-color: var(--bad); }
-.sf-band.high   { border-left-color: var(--cyan); }
-.sf-band.medium { border-left-color: var(--warn); }
-.sf-band.low    { border-left-color: var(--bad); }
-.conclusion {
-  font-size: 10.5px; line-height: 1.5; color: var(--ink-2);
-  padding: 5px 0 5px 10px; border-left: 1px solid var(--line);
-}
-.weakest { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
-.witem { display: flex; align-items: baseline; gap: 8px; font-size: 10.5px; }
-.witem .wn { flex: 1; color: var(--ink-2); }
-.witem .wv { font-family: var(--mono); color: var(--ink-3); white-space: nowrap; }
-/* `level` is certainty, so the good end is cyan. */
-.witem.high .wn, .witem.high .wv { color: var(--cyan); }
-.witem.low  .wn, .witem.low  .wv { color: var(--bad); }
-
-/* ---- uncertainty chain -------------------------------------------------
-   One row per pipeline stage, each with its own bar. The bar is stage
-   CERTAINTY: full means this stage's inputs are in good order, empty means the
-   stage could not be run. So the good end is cyan, not the bad end, and the
-   level word sits beside the bar so the direction is never ambiguous. */
-.ustage {
-  padding: 6px 8px; border-radius: var(--r);
-  background: var(--panel-2); border-left: 2px solid var(--line);
-}
-.ustage.high   { border-left-color: var(--cyan); }
-.ustage.medium { border-left-color: var(--warn); }
-.ustage.low    { border-left-color: var(--bad); }
-/* A stage the pipeline never rated. Deliberately neutral rather than absent:
-   an unrated stage is a different fact from a stage that does not exist, and
-   it must be visible as its own thing rather than read as a missing row. */
-.ustage.unknown { border-left-color: var(--line); }
-.uh { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.uh .ul { font-size: 11px; color: var(--ink); }
-.uh .uv {
-  font-size: 8.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
-  padding: 2px 5px; border-radius: 3px; background: var(--raised); color: var(--ink-3);
-}
-.ustage.high   .uh .uv { color: var(--cyan); }
-.ustage.medium .uh .uv { color: var(--warn); }
-.ustage.low    .uh .uv { color: var(--bad); }
-.ubar { height: 3px; border-radius: 2px; background: var(--line); margin-top: 5px; overflow: hidden; }
-.ubar::after { content: ""; display: block; height: 100%; width: var(--u, 0%);
-               background: var(--ink-3); border-radius: 2px; }
-.uv-note { margin-top: 3px; font-size: 9.5px; line-height: 1.45; color: var(--ink-3); }
-
-/* ---- why this vessel, and why not ---------------------------------------
-   Two columns that are deliberately not symmetric. The supporting reasons get
-   the calm treatment and the objections get the loud one, because a list that
-   treats "supports" and "undermines" with the same weight is a list that gets
-   skimmed for the supporting reasons. */
-.why-head { display: flex; align-items: baseline; gap: 8px; }
-.why-head .rank { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); }
-.why-head .nm { flex: 1; font-size: 13px; font-weight: 600; color: var(--ink);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.why-head .sc { font-family: var(--mono); font-size: 15px; color: var(--accent); }
-
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
-         background: var(--line-soft); border: 1px solid var(--line-soft);
-         border-radius: var(--r); overflow: hidden; }
-.cell { background: var(--panel-2); padding: 7px 9px; }
-.cell .cl { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
-.cell .cv { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-top: 2px; }
-.cell .cs { font-family: var(--mono); font-size: 15px; color: var(--ink); line-height: 1.2; }
-.cell .cn { margin-top: 3px; font-size: 9.5px; line-height: 1.4; color: var(--ink-3); }
-.cell.high .cv { color: var(--cyan); }
-.cell.medium .cv { color: var(--warn); }
-.cell.low .cv { color: var(--bad); }
-.geom { padding: 4px 0; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
-
-.why-col { display: flex; flex-direction: column; gap: 3px; }
-.col-h {
-  font-size: 9.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase;
-  color: var(--ink-3); padding-bottom: 3px;
-}
-.col-h.good { color: var(--cyan); }
-.col-h.bad  { color: var(--bad); }
-.ev-item {
-  display: flex; gap: 7px; align-items: baseline;
-  padding: 4px 7px; border-radius: var(--r);
-  background: var(--panel-2); border-left: 2px solid var(--line);
-  font-size: 10.5px; line-height: 1.45;
-}
-.ev-item .cat {
-  flex: none; font-family: var(--mono); font-size: 8.5px; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--ink-3); min-width: 62px;
-}
-.ev-item .txt { flex: 1; color: var(--ink-2); }
-.ev-item.pos { border-left-color: var(--cyan); }
-.ev-item.pos .cat { color: var(--cyan); }
-.ev-item.neg { border-left-color: var(--bad); }
-.ev-item.neg .cat { color: var(--bad); }
-.ev-item.neg .txt { color: var(--ink); }
-.ev-item.meta-item { border-left-color: var(--line); }
-
-/* ---- sensitivity -------------------------------------------------------
-   A scenario that changes the top candidate and one that does not are marked
-   differently, and the scenario that could not be evaluated says so in the
-   same slot a result would occupy. The badge is text because "did the
-   ranking hold" is the finding, not a colour. */
-.scen { padding: 7px 9px; border-radius: var(--r);
-        background: var(--panel-2); border: 1px solid var(--line-soft); }
-.sh { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sh .sl { font-size: 11.5px; font-weight: 600; color: var(--ink); }
-.badge {
-  flex: none; font-size: 8.5px; font-weight: 600; letter-spacing: .09em;
-  text-transform: uppercase; padding: 2px 5px; border-radius: 3px;
-  background: var(--raised); color: var(--ink-3);
-}
-.badge.hold { color: var(--cyan); background: color-mix(in srgb, var(--cyan) 14%, transparent); }
-.badge.flip { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
-.badge.na   { color: var(--bad);  background: color-mix(in srgb, var(--bad) 14%, transparent); }
-
-/* One line per scenario inside a candidate's card. The evaluable and the
-   not-evaluable rows sit at the same indent, because a scenario that could
-   not be run still occupies a slot in the argument. */
-.scenarios { display: flex; flex-direction: column; margin-top: 5px; }
-.srow {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-  padding: 3px 0 3px 9px; border-left: 1px solid var(--line);
-  font-size: 10px;
-}
-.srow .sn { flex: 1; color: var(--ink-2); }
-.srow .sv2 { font-family: var(--mono); color: var(--ink-3); white-space: nowrap; }
-.srow.na { border-left-style: dashed; }
-.srow.na .sn { color: var(--ink-3); }
-.srow.na .sv2 { color: var(--bad); letter-spacing: .05em; font-size: 9px; }
-.sorder { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; }
-.sorder li { display: flex; gap: 7px; align-items: baseline; font-size: 10.5px; }
-.sorder .m { font-family: var(--mono); color: var(--ink-3); min-width: 54px; }
-.sorder .n { flex: 1; color: var(--ink-2); overflow: hidden;
-             text-overflow: ellipsis; white-space: nowrap; }
-.sorder .s { font-family: var(--mono); color: var(--ink-3); }
-
-/* ---- ablation ladder --------------------------------------------------- */
-.rung {
-  display: grid; grid-template-columns: 18px 1fr auto; gap: 8px;
-  align-items: baseline; padding: 5px 8px; border-radius: var(--r);
-  background: var(--panel-2); border-left: 2px solid var(--line);
-}
-.rung .rid { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--ink-2); }
-.rung .rname { font-size: 10.5px; color: var(--ink-2); }
-.rung .rv { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); white-space: nowrap; }
-.rung .rv.na { color: var(--bad); letter-spacing: .06em; }
-.rung.na { border-left-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
-
-/* ---- calibration ------------------------------------------------------- */
-.cal-status {
-  padding: 6px 9px; border-radius: var(--r); background: var(--panel-2);
-  border-left: 2px solid var(--bad);
-}
-.cal-status b { font-size: 11px; font-weight: 600; letter-spacing: .07em;
-                text-transform: uppercase; color: var(--bad); }
-.cal-status.ok { border-left-color: var(--cyan); }
-.cal-status.ok b { color: var(--cyan); }
-.cal-lbl { font-size: 9px; letter-spacing: .1em; text-transform: uppercase;
-           color: var(--ink-3); margin-top: 3px; }
-.rel-row {
-  display: grid; grid-template-columns: 34px 1fr 1fr 34px; gap: 6px;
-  font-family: var(--mono); font-size: 9.5px; color: var(--ink-2);
-  padding: 2px 0;
-}
-.rel-row .rb, .rel-row .rn { color: var(--ink-3); }
-.rel-row .ro { text-align: right; }
-
-/* ---- provenance -------------------------------------------------------- */
-.missing { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line-soft); }
-.mitem { display: flex; gap: 8px; align-items: baseline; font-size: 10.5px; }
-.mitem .mk { font-family: var(--mono); color: var(--bad); flex: none; }
-.mitem .mw { color: var(--ink-3); }
-
-/* ---- event timeline ----------------------------------------------------
-   The kind tag is the whole point of this panel. A modelled origin hour and a
-   satellite acquisition are both times on the same axis, and without the tag
-   the first gets quoted as if it were the second. */
-.evt {
-  display: grid; grid-template-columns: 62px 1fr; gap: 8px;
-  padding: 6px 0; border-bottom: 1px solid var(--line-soft);
-}
-.evt:last-child { border-bottom: none; }
-.evt .ek {
-  align-self: start; font-size: 8.5px; font-weight: 600; letter-spacing: .07em;
-  text-transform: uppercase; text-align: center; padding: 2px 0;
-  border-radius: 3px; background: var(--raised); color: var(--ink-3);
-}
-.evt.observed   .ek { color: var(--cyan); }
-.evt.inferred   .ek { color: var(--warn); }
-.evt.attributed .ek { color: var(--accent); }
-.eb { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.eb .el { font-size: 11.5px; color: var(--ink); }
-.eb .et { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); }
-.eb .ed { margin-top: 2px; font-size: 10px; line-height: 1.45; color: var(--ink-3); }
-
-/* ---- optical and detector --------------------------------------------- */
-.optical-status {
-  padding: 6px 9px; border-radius: var(--r); background: var(--panel-2);
-  border-left: 2px solid var(--warn);
-}
-.optical-status b { font-size: 11px; font-weight: 600; letter-spacing: .07em;
-                    text-transform: uppercase; color: var(--warn); }
-.optical-status.ok  { border-left-color: var(--cyan); }
-.optical-status.ok b { color: var(--cyan); }
-.optical-status.bad { border-left-color: var(--bad); }
-.optical-status.bad b { color: var(--bad); }
-.shape, .optical, .detmeta { gap: 2px; }
-
-/* ---- vessel glyphs -----------------------------------------------------
-   A heading arrow rather than a dot, because the trajectory match is the whole
-   argument for a candidate and the heading is what an operator checks by eye
-   against the drift vector. A dead-reckoned fix is hollow and dashed-edged,
-   because a position inferred across a reporting gap is a different kind of
-   fact from a received one and must not look like it. */
-.vessel-glyph { background: none; border: none; }
-.vessel-glyph.lead { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--rank1) 55%, transparent)); }
-.vessel-glyph.dr { opacity: .8; }
 .vessel-label {
   background: transparent; border: none; color: var(--ink);
   font: 10px var(--mono); text-shadow: 0 1px 3px #000, 0 0 2px #000;
   white-space: nowrap;
 }
-
 .coverage-note {
   position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
   max-width: 46ch; padding: 8px 12px; z-index: 620;
@@ -973,3 +663,283 @@ label.probe input { accent-color: var(--accent); margin-top: 1px; flex: none; }
   .mainnav { display: none; }
   .strip { grid-template-columns: 1fr; height: auto; }
 }
+
+/* ========================================================================
+   Maritime intelligence workstation layer. The stable ids above remain the
+   application's rendering contract; this section changes only hierarchy and
+   interaction treatment, not the data model behind the console. */
+:root {
+  --bg: #061217;
+  --panel: #0b1d24;
+  --panel-2: #102a32;
+  --raised: #16343b;
+  --line: #203c43;
+  --line-soft: #183039;
+  --ink: #e7f2f0;
+  --ink-2: #aec5c4;
+  --ink-3: #829da1;
+  --accent: #55c7c9;
+  --accent-dim: #2c7376;
+  --cyan: #55c7c9;
+  --sea: #61c7a5;
+  --warn: #e1ac58;
+  --bad: #d96a64;
+  --oil: #61c7a5;
+  --lookalike: #c5a96b;
+  --hind: #e1ac58;
+  --fore: #55c7c9;
+  --rank1: #e1ac58;
+  --rail-l: 258px;
+  --rail-r: 336px;
+  --r: 4px;
+  --pad: 15px;
+}
+
+:root[data-theme="light"] {
+  --bg: #eaf1f0;
+  --panel: #f7fbfa;
+  --panel-2: #e5efed;
+  --raised: #d9e7e5;
+  --line: #aec8c7;
+  --line-soft: #cadbd9;
+  --ink: #10282c;
+  --ink-2: #3e5b5f;
+  --ink-3: #536f73;
+  --accent: #167e80;
+  --accent-dim: #8ab9b8;
+  --cyan: #167e80;
+  --sea: #267e67;
+  --warn: #91631a;
+  --bad: #b64b46;
+}
+
+body { letter-spacing: 0; }
+#app { grid-template-rows: 60px minmax(0, 1fr); gap: 0; background: var(--line); }
+.appbar { gap: 18px; padding: 0 18px; border-bottom: 1px solid var(--line); }
+.brand .mark { width: 28px; height: 28px; }
+.brand-text b { font-size: 14px; letter-spacing: .16em; }
+.brand-text i { color: var(--ink-3); font-size: 9px; font-style: normal; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.mk-ring, .mk-wave { stroke: var(--cyan); }
+.mk-drop { fill: var(--warn); }
+.mainnav { height: 100%; align-items: stretch; gap: 1px; }
+.navlink { padding: 0 10px; border-bottom: 2px solid transparent; font-size: 10px; letter-spacing: .08em; }
+.navlink[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.workflow { display: flex; align-items: center; gap: 7px; margin-left: 4px; min-width: 0; color: var(--ink-3); font-size: 8px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.workflow span { display: flex; align-items: center; gap: 7px; }
+.workflow span:not(:last-child)::after { content: ">"; color: var(--line); }
+.appbar-right { gap: 8px; }
+.search input { width: 190px; border-radius: 3px; }
+.iconbtn, .report-btn { height: 30px; border-radius: 3px; }
+.mobile-rail-btn { display: none; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel-2); color: var(--ink-2); font: 700 9px var(--sans); letter-spacing: .08em; text-transform: uppercase; }
+.report-btn { padding: 0 10px; border: 1px solid var(--accent-dim); background: rgba(85, 199, 201, .10); color: var(--accent); cursor: pointer; font: 700 9px var(--sans); letter-spacing: .11em; text-transform: uppercase; }
+.report-btn:disabled { cursor: not-allowed; opacity: .45; }
+
+.rail { border-right: 1px solid var(--line); background: var(--panel); }
+.rail-r { border-right: 0; border-left: 1px solid var(--line); }
+.rail-block { padding: 14px var(--pad); }
+.rail-block > h2, .card > h2 { font-size: 9px; letter-spacing: .12em; color: var(--ink-3); }
+.scene-list { gap: 5px; }
+.scene-row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; padding: 9px 10px; border: 1px solid transparent; border-left: 2px solid var(--line); border-radius: 3px; background: transparent; }
+.scene-row:hover { background: var(--panel-2); border-color: var(--line); }
+.scene-row[aria-current="true"] { background: var(--panel-2); border-color: var(--line); border-left-color: var(--accent); box-shadow: inset 2px 0 0 var(--accent); }
+.scene-row .nm { font-size: 11.5px; }
+.scene-row .dt { color: var(--ink-3); font-size: 9.5px; }
+.scene-row .ais { border: 1px solid var(--line); border-radius: 2px; padding: 2px 4px; color: var(--sea); font-size: 8px; font-style: normal; }
+.scene-row .ais.sim { border-color: color-mix(in srgb, var(--warn) 55%, var(--line)); color: var(--warn); }
+.grid2 { gap: 9px; }
+input[type=number], input[type=text], select { padding: 7px 8px; border-radius: 3px; background: var(--bg); }
+.btn-primary { margin-top: 12px; padding: 10px; border-radius: 3px; background: var(--accent); border-color: var(--accent); color: #062126; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.btn-primary:disabled { color: var(--ink-3); }
+.stats { border-radius: 3px; }
+.stat { padding: 9px 10px; }
+.stat .sv { font-size: 15px; }
+.sources { gap: 7px; }
+
+.centre { grid-template-rows: auto minmax(360px, 1fr) auto auto; background: var(--bg); }
+.centre-head { min-height: 74px; padding: 12px 17px; background: var(--panel); }
+.ch-title { gap: 8px; flex-wrap: wrap; }
+.case-kicker { width: 100%; color: var(--accent); font-size: 8px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.ch-title h1 { font-size: 17px; letter-spacing: 0; }
+.pill { border: 1px solid var(--line); border-radius: 3px; background: transparent; }
+.pill.active { border-color: color-mix(in srgb, var(--sea) 55%, var(--line)); background: rgba(97, 199, 165, .10); color: var(--sea); }
+.pill.clean { background: var(--raised); }
+#mapwrap { background: #07161b; }
+#map { background: #07161b; }
+.mappanel { left: 14px; top: 14px; width: 178px; border-radius: 3px; background: color-mix(in srgb, var(--panel) 94%, transparent); box-shadow: 0 8px 18px rgba(0,0,0,.22); }
+.mappanel > summary { padding: 9px 10px; font-size: 9px; letter-spacing: .11em; }
+.layers { padding: 7px 9px 9px; gap: 4px; }
+.layers label { font-size: 10px; }
+.map-hud { border-radius: 3px; background: color-mix(in srgb, var(--panel) 90%, transparent); }
+
+#timebar { display: grid; grid-template-columns: auto auto auto minmax(110px, 1fr) auto; align-items: center; gap: 10px; min-height: 62px; padding: 10px 16px; border-top: 1px solid var(--line); background: var(--panel); }
+#timebar.on { display: grid; }
+.timeline-label { display: flex; flex-direction: column; min-width: 105px; }
+.timeline-label span { color: var(--ink-2); font-size: 9px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.timeline-label small { color: var(--ink-3); font: 9px var(--mono); margin-top: 2px; }
+#timebar input[type=range] { accent-color: var(--accent); }
+.tb-btn { border-radius: 3px; padding: 5px 7px; font-size: 10px; }
+.tb-legend { font-size: 9px; white-space: nowrap; }
+.sw.hind { background: var(--warn); }
+.sw.fore { background: var(--cyan); }
+.timeline-events { grid-column: 1 / -1; display: flex; gap: 6px; min-width: 0; overflow-x: auto; padding-top: 2px; }
+.timeline-empty { color: var(--ink-3); font-size: 9px; }
+.timeline-event { flex: 0 0 auto; display: grid; grid-template-columns: auto 1fr; gap: 1px 6px; min-width: 138px; padding: 5px 7px; border: 1px solid var(--line); border-left: 2px solid var(--line); border-radius: 3px; background: var(--panel-2); color: var(--ink); text-align: left; cursor: default; }
+.timeline-event.vessel { cursor: pointer; }
+.timeline-event.observed { border-left-color: var(--sea); }
+.timeline-event.inferred { border-left-color: var(--warn); }
+.timeline-event.predicted { border-left-color: var(--cyan); }
+.event-kind { color: var(--ink-3); font-size: 7px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.event-label { grid-column: 1 / -1; overflow: hidden; color: var(--ink-2); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.event-time { grid-column: 1 / -1; color: var(--ink-3); font: 8px var(--mono); }
+.strip { height: 108px; border-top: 1px solid var(--line); background: var(--panel); }
+.card { padding: 11px 14px; background: transparent; }
+.card + .card { border-left-color: var(--line); }
+.card-body { font-size: 10px; }
+
+.context-head { padding: 15px var(--pad) 12px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+.context-kicker { display: block; color: var(--accent); font-size: 8px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.context-head strong { display: block; margin-top: 3px; color: var(--ink); font-size: 14px; font-weight: 600; }
+.context-head span:last-child { display: block; margin-top: 4px; color: var(--ink-3); font-size: 10px; line-height: 1.4; }
+#notices { margin: 0; }
+.notice { border-left-color: var(--warn); border-radius: 0; font-size: 10px; }
+.notice.ok { border-left-color: var(--sea); }
+.suspect { border-left-color: var(--line); border-radius: 0; background: transparent; }
+.suspect:hover { background: var(--panel-2); }
+.suspect.sel { background: var(--panel-2); border-left-color: var(--warn); box-shadow: inset 2px 0 0 var(--warn); }
+.suspect.r1 { border-left-color: var(--warn); }
+.suspect.r1 .sc { color: var(--warn); }
+.suspect .bar > i { background: var(--warn); }
+.suspect .detail { border-top-color: var(--line); }
+.tags .tag { border-radius: 2px; }
+.vessel-assessment { margin-top: 8px; border-top: 1px solid var(--line); }
+.vessel-assessment > summary { padding: 7px 0 2px; color: var(--ink-2); cursor: pointer; font-size: 10px; font-weight: 700; }
+.assessment-group { margin-top: 7px; padding-left: 8px; border-left: 2px solid var(--sea); }
+.assessment-group.counter { border-left-color: var(--bad); }
+.assessment-group strong { color: var(--ink-2); font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.assessment-group p { margin: 3px 0; color: var(--ink-3); font-size: 9.5px; line-height: 1.4; }
+
+#map.probing { cursor: crosshair; box-shadow: inset 0 0 0 2px var(--warn); }
+.vessel-glyph { background: none; border: 0; }
+.vessel-glyph.observed svg { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+.vessel-glyph.reconstructed { opacity: .9; }
+.vessel-glyph.selected svg { filter: drop-shadow(0 0 5px rgba(225, 172, 88, .85)); }
+button:focus-visible, input:focus-visible, summary:focus-visible, .scene-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 1380px) {
+  :root { --rail-l: 232px; --rail-r: 304px; }
+  .workflow { display: none; }
+  .search input { width: 158px; }
+}
+@media (max-width: 1050px) {
+  html, body { overflow: hidden; }
+  #app { height: 100vh; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(440px, 1fr); }
+  .appbar { grid-column: 1; flex-wrap: wrap; min-height: 60px; padding: 8px 12px; }
+  .mainnav { order: 3; width: 100%; height: 34px; overflow-x: auto; }
+  .navlink { flex: none; }
+  .appbar-right { margin-left: auto; }
+  .mobile-rail-btn { display: inline-grid; place-items: center; }
+  .rail { position: fixed; top: 0; bottom: 0; z-index: 1200; width: min(340px, calc(100vw - 48px)); max-height: none; border: 1px solid var(--line); box-shadow: 0 16px 42px rgba(0,0,0,.45); transition: transform .2s ease; }
+  .rail-l { left: 0; transform: translateX(-105%); }
+  .rail-r { right: 0; transform: translateX(105%); border-left: 1px solid var(--line); }
+  .rail.mobile-open { transform: translateX(0); }
+  .centre { grid-row: 2; min-height: 0; }
+  .strip { height: auto; grid-template-columns: 1fr; }
+  .card + .card { border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 640px) {
+  .search, .clock { display: none; }
+  .appbar-right { gap: 5px; }
+  .brand-text i { display: none; }
+  .centre-head { grid-template-columns: minmax(0, 1fr); }
+  .ch-coords { grid-row: auto; grid-column: auto; text-align: left; }
+  #timebar { grid-template-columns: auto auto minmax(0, 1fr); gap: 7px; }
+  .timeline-label, .tb-legend { display: none; }
+  #timebar .wide { display: none; }
+  .mappanel { width: 154px; }
+}
+
+/* ===================================================== case evidence panels
+   These read the case API rather than the job document, so they get their own
+   block. The certainty bar is the reason it is worth being explicit: `quantity`
+   runs 0.0 for a stage that could not be run to 1.0 for a stage whose inputs
+   are in good order, so the good end of the scale carries the good colour and
+   the bar is labelled as certainty, not uncertainty. */
+
+.case-q {
+  display: inline-block; margin-top: 5px; padding: 3px 8px;
+  border: 1px solid var(--line); border-left: 3px solid var(--warn);
+  border-radius: 3px; background: var(--panel-2);
+  color: var(--ink-2); font-size: 9px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.case-q[hidden] { display: none; }
+
+.case-title { color: var(--ink); font: 11px var(--mono); overflow-wrap: anywhere; }
+.case-section { margin-top: 13px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+.case-section h3 {
+  margin: 0 0 6px; color: var(--ink-3); font-size: 9px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.case-section .hint { margin-bottom: 7px; }
+.hint.caveat { color: var(--ink-2); font-style: italic; }
+
+.ustage { margin-bottom: 9px; padding: 6px 0 6px 8px; border-left: 2px solid var(--line); }
+.ustage.high { border-left-color: var(--cyan); }
+.ustage.mid  { border-left-color: var(--warn); }
+.ustage.low  { border-left-color: var(--bad); }
+.ustage.unreported { border-left-color: var(--ink-3); border-left-style: dashed; }
+.ustage-head { display: flex; justify-content: space-between; gap: 8px; }
+.ustage-name { color: var(--ink); font-size: 11px; }
+.ustage-level { color: var(--ink-3); font-size: 8px; font-weight: 700; letter-spacing: .1em; }
+.ubar { height: 4px; margin-top: 5px; background: var(--line-soft); border-radius: 2px; overflow: hidden; }
+.ufill { height: 100%; background: var(--accent); }
+.ustage.high .ufill { background: var(--cyan); }
+.ustage.mid .ufill { background: var(--warn); }
+.ustage.low .ufill { background: var(--bad); }
+.ustage-qty { margin-top: 3px; color: var(--ink-3); font: 9px var(--mono); }
+.ustage-note { margin-top: 3px; color: var(--ink-2); font-size: 10px; line-height: 1.45; }
+
+.srow { margin-bottom: 11px; padding: 7px 9px; border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--panel-2); }
+.srow-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.srow-name { color: var(--ink); font-size: 11px; font-weight: 600; }
+.srow-stab { font-size: 8px; font-weight: 700; letter-spacing: .1em; color: var(--ink-3); }
+.srow-stab.unstable { color: var(--bad); }
+.srow-stab.sensitive { color: var(--warn); }
+.srow-stab.stable { color: var(--sea); }
+.scenario { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 4px 0; border-top: 1px solid var(--line-soft); }
+.sc-name { color: var(--ink-2); font-size: 10px; }
+.sc-val { color: var(--ink); font: 9px var(--mono); text-align: right; }
+.sc-val.not-evaluated { color: var(--warn); font-weight: 700; }
+.sc-reason { grid-column: 1 / -1; color: var(--ink-3); font-size: 9px; }
+
+.ladder { display: grid; gap: 1px; background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: var(--r); overflow: hidden; }
+.lrow { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 6px 8px; background: var(--panel-2); }
+.lstep { color: var(--accent); font: 10px var(--mono); font-weight: 700; }
+.llabel { color: var(--ink); font-size: 10px; }
+.lval { color: var(--ink-2); font: 9px var(--mono); text-align: right; }
+.lval.not-evaluated { color: var(--warn); font-weight: 700; }
+.lreason { grid-column: 2 / -1; color: var(--ink-3); font-size: 9px; }
+
+.cand { margin-bottom: 11px; padding: 8px 10px; border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--panel-2); }
+.cand-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.cand-name { color: var(--ink); font-size: 12px; font-weight: 600; }
+.cand-score { color: var(--accent); font: 11px var(--mono); }
+.cand-why { margin: 6px 0 3px; color: var(--ink-3); font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.cand-why.not { color: var(--warn); }
+.ev-list { margin: 0; padding: 0; list-style: none; }
+.ev-list li { position: relative; padding: 2px 0 2px 11px; color: var(--ink-2); font-size: 10px; line-height: 1.45; }
+.ev-list li::before { position: absolute; left: 0; content: "\2013"; color: var(--ink-3); }
+.ev-list li.absent { color: var(--ink-3); font-style: italic; }
+.ev-list li.absent::before { content: "?"; color: var(--warn); }
+.ev-list li.note { color: var(--ink-3); font-style: italic; }
+.ev-list.quality li::before { content: "\00b7"; color: var(--accent); }
+
+.kv.absent .v { color: var(--ink-3); font-style: italic; }
+
+/* Raw JSON stays available for the diagnostic routes. It is collapsed by
+   default because it is a source to check a claim against, not a reading
+   surface, and it should not be mistaken for a rendered finding. */
+.case-api { margin-top: 9px; border: 1px solid var(--line-soft); border-radius: var(--r); background: var(--panel-2); }
+.case-api > summary { padding: 6px 9px; color: var(--ink-3); font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.case-api > summary:hover { color: var(--ink-2); }
+.api-result { max-height: 220px; margin: 0; padding: 0 9px 9px; overflow: auto; color: var(--ink-3); font: 9px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }

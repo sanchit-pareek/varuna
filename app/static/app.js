@@ -17,7 +17,8 @@
     playing: false,
     timer: null,
     frames: [],
-    frameIndex: 0
+    frameIndex: 0,
+    focus: "case"
   };
 
   var layers = {};
@@ -68,6 +69,29 @@
     }).then(function (r) {
       if (!r.ok) return r.text().then(function (t) { throw new Error(r.status + " " + t.slice(0, 400)); });
       return r.json();
+    });
+  }
+
+  /* The right rail follows the investigator's selection instead of presenting
+     every possible metric at once. Views remain available from the header;
+     this only chooses the most relevant one when a map feature is selected. */
+  function setContext(kind) {
+    state.focus = kind || "case";
+    var app = $("app");
+    if (app) app.dataset.focus = state.focus;
+    var title = $("context-title"), note = $("context-note");
+    var copy = {
+      case: ["Case overview", "Detection, drift and attribution are shown only after an investigation."],
+      slick: ["Slick observation", "Observed SAR geometry and corroborating evidence for the selected slick."],
+      drift: ["Drift reconstruction", "Modelled origin zone, hindcast uncertainty and predicted trajectory."],
+      vessel: ["Vessel evidence", "Candidate evidence is ranked for investigation, not proof of discharge."],
+      data: ["Data provenance", "Source availability, detector state and offline runtime information."]
+    }[state.focus] || ["Case overview", "Select an item to focus the investigation."];
+    if (title) title.textContent = copy[0];
+    if (note) note.textContent = copy[1];
+    Array.prototype.forEach.call(document.querySelectorAll(".context-panel"), function (panel) {
+      var contexts = (panel.dataset.context || "").split(" ");
+      panel.hidden = contexts.indexOf(state.focus) < 0;
     });
   }
 
@@ -462,7 +486,7 @@
         "contrast " + fmt(p.contrast_db, 1) + " dB<br>" +
         "confidence " + fmt(p.confidence, 2) + "<br>" +
         "centroid " + fmt(p.centroid_lat, 4) + ", " + fmt(p.centroid_lon, 4)
-      ).addTo(layerGroup.oil);
+      ).on("click", function () { setContext("slick"); }).addTo(layerGroup.oil);
     });
 
     (det.lookalikes || []).forEach(function (f) {
@@ -489,13 +513,15 @@
         color: MAPC.hindEdge, weight: 1, dashArray: "3,4",
         fillColor: MAPC.hindFill, fillOpacity: 0.10
       }).bindPopup("Hindcast cone, swept 90 percent ensemble<br>area " +
-        fmt(d.cone_back.properties.area_km2, 1) + " km2").addTo(layerGroup.cone_back);
+        fmt(d.cone_back.properties.area_km2, 1) + " km2")
+        .on("click", function () { setContext("drift"); }).addTo(layerGroup.cone_back);
     }
 
     if (d.hindcast_track && d.hindcast_track.geometry) {
       L.polyline(ringToLatLng(d.hindcast_track.geometry.coordinates), {
         color: MAPC.hind, weight: 2, dashArray: "2,6", opacity: 0.9
-      }).bindPopup("Ensemble median backtrack").addTo(layerGroup.hindcast);
+      }).bindPopup("Ensemble median backtrack")
+        .on("click", function () { setContext("drift"); }).addTo(layerGroup.hindcast);
     }
 
     if (d.origin_zone && d.origin_zone.geometry) {
@@ -507,7 +533,7 @@
         "90 percent envelope, spread " + fmt(d.origin.spread_km, 1) + " km<br>" +
         "buffered " + fmt(d.origin.buffer_km, 1) + " km<br>" +
         "area " + fmt(d.origin.area_km2, 1) + " km2"
-      ).addTo(layerGroup.origin);
+      ).on("click", function () { setContext("drift"); }).addTo(layerGroup.origin);
 
       L.circleMarker([d.origin.lat, d.origin.lon], {
         radius: 4, color: "#ffffff", weight: 2, fillColor: MAPC.origin, fillOpacity: 1
@@ -528,24 +554,24 @@
     }
   }
 
-  /* The map's own palette, kept in one place so it cannot drift away from the
-     stylesheet. Amber is the case under investigation, cyan is the forecast,
-     and everything else is slate. */
+  /* Observed is sea-green, inferred is amber, predicted is cyan, and missing
+     AIS reception is critical red. The legend and layer labels use the same
+     meanings. */
   var MAPC = {
-    oil: "#e89550",
-    lookalike: "#b9a05e",
-    hind: "#e0b98d",
-    hindEdge: "#c9a37c",
-    hindFill: "#8a6a4c",
-    origin: "#e8734a",
-    fore: "#4fb8dd",
-    gap: "#cc5b4e"
+    oil: "#61c7a5",
+    lookalike: "#c5a96b",
+    hind: "#e1ac58",
+    hindEdge: "#e1ac58",
+    hindFill: "#e1ac58",
+    origin: "#e1ac58",
+    fore: "#55c7c9",
+    gap: "#d96a64"
   };
 
   /* Rank 1 is amber like the release zone it is being connected to. Ranks 2-3
      step down through it, and everything below that is slate: the leaderboard
      already carries the ordering, and ten distinct hues on a chart is noise. */
-  var RANK_COLORS = ["#e8734a", "#e89550", "#c9a06a", "#8fa6b5", "#8fa6b5",
+  var RANK_COLORS = ["#e1ac58", "#d3b879", "#bca773", "#8fa6b5", "#8fa6b5",
     "#8fa6b5", "#8fa6b5", "#8fa6b5", "#8fa6b5", "#8fa6b5"];
 
   function rankColor(rank) {
@@ -556,7 +582,9 @@
     layerGroup.tracks.clearLayers();
     suspects.forEach(function (s) {
       var color = rankColor(s.rank);
-      var weight = s.rank === 1 ? 4 : (s.rank <= 3 ? 2.5 : 1.6);
+      var selected = state.selected && String(state.selected) === String(s.mmsi);
+      var deEmphasised = state.selected && !selected;
+      var weight = selected ? 5 : (s.rank === 1 ? 4 : (s.rank <= 3 ? 2.5 : 1.6));
       var gj = (s.track || {}).geojson;
       if (!gj) return;
       gj.features.forEach(function (f) {
@@ -565,7 +593,7 @@
         L.polyline(ringToLatLng(f.geometry.coordinates), {
           color: dr ? MAPC.gap : color,
           weight: dr ? Math.max(weight, 3) : weight,
-          opacity: dr ? 0.95 : 0.8,
+          opacity: deEmphasised ? 0.18 : (dr ? 0.95 : 0.8),
           dashArray: dr ? "7,5" : null
         }).bindPopup(
           "<b>" + (s.name || "UNKNOWN") + "</b><br>" +
@@ -575,7 +603,7 @@
           (dr ? "<b style='color:" + MAPC.gap + "'>NON-REPORTING segment, " +
             fmt(f.properties.gap_minutes, 0) + " min</b><br>" : "") +
           s.reasons.join("<br>")
-        ).addTo(layerGroup.tracks);
+        ).on("click", function () { selectSuspect(s.mmsi); }).addTo(layerGroup.tracks);
       });
     });
   }
@@ -597,13 +625,11 @@
     slider.min = 0;
     slider.max = Math.max(0, state.frames.length - 1);
     slider.value = state.frameIndex;
-    // resetRun disables the scrubber, and nothing re-enabled it: the first run
-    // of a session worked, and every run after picking a different scene left
-    // the slider greyed out and inert. `disabled` is a property set here rather
-    // than only cleared, so the scrubber's state is owned in exactly one place
-    // and always matches whether there are frames to scrub.
     slider.disabled = state.frames.length < 2;
     $("timebar").classList.toggle("on", state.frames.length > 1);
+    var timeline = $("timeline-state");
+    if (timeline) timeline.textContent = state.frames.length > 1
+      ? state.frames.length + " AIS events available" : "No AIS trajectory to replay";
     renderFrame();
   }
 
@@ -630,37 +656,25 @@
       var p = nearestSample(s.track.samples || [], ts);
       if (!p) return;
       var color = rankColor(s.rank);
-
-      // Directional glyph. A plain dot tells an operator where a vessel was
-      // but not which way it was going, and the trajectory match is the whole
-      // argument for a candidate, so heading belongs on the map rather than in
-      // a tooltip that has to be hovered. An arrow rotated to the course over
-      // ground, sized by rank, with a dead-reckoned sample hollowed out and
-      // dashed-edged because a position inferred across a reporting gap is a
-      // different kind of fact from a received one.
-      var r = s.rank === 1 ? 11 : (s.rank <= 3 ? 9 : 7);
+      var r = s.rank === 1 ? 9 : 7;
       var icon = L.divIcon({
-        className: "vessel-glyph" + (p.dr ? " dr" : "") +
-          (s.rank === 1 ? " lead" : ""),
-        html: arrowGlyph(r, p.cog, color, p.dr),
-        iconSize: [r * 2.4, r * 2.4],
-        iconAnchor: [r * 1.2, r * 1.2]
+        className: "vessel-glyph" + (p.dr ? " reconstructed" : " observed") +
+          (String(s.mmsi) === String(state.selected) ? " selected" : ""),
+        html: vesselArrow(r, p.cog, color, p.dr),
+        iconSize: [r * 2.5, r * 2.5], iconAnchor: [r * 1.25, r * 1.25]
       });
-      L.marker([p.lat, p.lon], { icon: icon, interactive: true })
-        .bindTooltip(
-          "#" + s.rank + " " + (s.name || "UNKNOWN") + "  " +
-          fmt(p.sog, 1) + " kn  heading " + fmt(p.cog, 0) + "°" +
-          (p.dr ? "  DEAD RECKONED" : ""),
-          { direction: "top" }
-        )
-        .addTo(g);
+      L.marker([p.lat, p.lon], { icon: icon }).bindTooltip(
+        "#" + s.rank + " " + (s.name || "UNKNOWN") + "  " + fmt(p.sog, 1) + " kn  " +
+        fmt(p.cog, 0) + " deg" + (p.dr ? "  NON-REPORTING" : ""),
+        { direction: "top" }
+      ).on("click", function () { selectSuspect(s.mmsi); }).addTo(g);
 
       if (s.rank === 1) {
         L.marker([p.lat, p.lon], {
           icon: L.divIcon({
             className: "vessel-label",
             html: (s.name || "UNKNOWN"),
-            iconAnchor: [-13, 7]
+            iconAnchor: [-9, 6]
           }),
           interactive: false
         }).addTo(g);
@@ -668,27 +682,14 @@
     });
   }
 
-  /* An arrowhead pointing along the course, drawn in the rank colour.
-
-     Built as inline SVG rather than as a rotated image so it stays crisp at
-     any zoom, recolours with the rank, and can be hollowed for a
-     dead-reckoned fix without a second asset. */
-  function arrowGlyph(r, cog, color, hollow) {
-    var d = "M" + (r * 2.1) + " " + r +
-            " L" + (r * 0.55) + " " + (r * 0.28) +
-            " L" + (r * 0.95) + " " + r +
-            " L" + (r * 0.55) + " " + (r * 1.72) +
-            " L" + (r * 0.2) + " " + (r * 1.1) +
-            " L" + (r * 0.72) + " " + r + " Z";
-    var fill = hollow ? "none" : color;
-    return '<svg width="' + (r * 2.4) + '" height="' + (r * 2.4) + '" ' +
-      'viewBox="0 0 ' + (r * 2.4) + ' ' + (r * 2.4) + '">' +
-      '<g transform="rotate(' + (Number(cog) || 0) + " " + r + " " + r + ')">' +
-      '<path d="' + d + '" fill="' + fill + '" stroke="' + color + '" ' +
-      'stroke-width="' + (hollow ? 1.6 : 1) + '"' +
-      (hollow ? ' stroke-dasharray="2.5 1.8"' : "") +
-      ' stroke-linejoin="round" opacity="' + (hollow ? 0.95 : 1) + '"/>' +
-      "</g></svg>";
+  function vesselArrow(r, cog, color, hollow) {
+    var mid = r * 1.25;
+    var path = "M" + (r * 2.15) + " " + mid + " L" + (r * .35) + " " + (r * .35) +
+      " L" + (r * .85) + " " + mid + " L" + (r * .35) + " " + (r * 2.15) + " Z";
+    return '<svg viewBox="0 0 ' + (r * 2.5) + " " + (r * 2.5) + '" aria-hidden="true">' +
+      '<path d="' + path + '" transform="rotate(' + (Number(cog) || 0) + " " + mid + " " + mid +
+      ')" fill="' + (hollow ? "none" : color) + '" stroke="' + color +
+      '" stroke-width="1.5" ' + (hollow ? 'stroke-dasharray="3 2"' : "") + "/></svg>";
   }
 
   function play() {
@@ -809,100 +810,21 @@
     return box;
   }
 
-  // The optical cross-check, rendered as its own panel. It is corroboration
-  // and never changes a detection, so it reads as a count of agreements rather
-  // than as a score, and it always carries the time offset: Sentinel-2 did not
-  // see this water when the radar did, and a disagreement across a 26 hour gap
-  // is weak evidence about anything.
-  //
-  // This used to be a `eoSummary()` string that nothing called, built from the
-  // old pre-status fields. A cross-check an investigator cannot see is not a
-  // cross-check, so it is now a panel, and it reports the pipeline's own status
-  // vocabulary rather than a bar count that reads as a verdict.
-  function renderOptical(job) {
-    var box = $("optical");
-    if (!box) return;
-    box.innerHTML = "";
-    if (!job) {
-      box.appendChild(el("p", "hint",
-        "Sentinel-2 corroboration. Never an input to detection."));
-      return;
-    }
-    var eo = (job.detection || {}).eo;
-    if (!eo) {
-      box.appendChild(el("p", "hint", "No optical step ran for this job."));
-      return;
-    }
-    if (!eo.available) {
-      box.appendChild(el("div", "notice",
-        "Optical not used: " + (eo.reason || "no chip cached for this scene") + "."));
-      return;
-    }
-
+  // The optical cross-check, summarised for the verdict card. It is
+  // corroboration and never changes a detection, so it reads as a count of
+  // agreements rather than as a score, and always carries the time offset:
+  // Sentinel-2 did not see this water when the radar did.
+  function eoSummary(job) {
+    var eo = job.detection && job.detection.eo;
+    if (!eo || !eo.available) return "no chip cached";
     var c = eo.counts || {};
-    var status = eo.status || "unavailable";
-    var head = el("div", "optical-status " + (status === "corroborated" ? "ok" :
-      (status === "contradicted" ? "bad" : "")));
-    head.appendChild(el("b", null, String(status).replace(/_/g, " ")));
-    box.appendChild(head);
-
-    var delta = eo.time_delta || {};
-    var rows = [
-      ["Acquired", utc(eo.acquired)],
-      ["Offset from radar", delta.hours != null ? fmt(delta.hours, 1) + " h" : "unknown"],
-      ["Cloud free", eo.cloud_percent != null ? fmt(eo.cloud_percent, 1) + "%" : "n/a"],
-      ["Valid pixels", delta.valid_pixel_fraction != null
-        ? fmt(delta.valid_pixel_fraction * 100, 1) + "%" : "n/a"],
-      ["Oil px agreeing", String(c.consistent != null ? c.consistent : 0)],
-      ["Oil px disagreeing", String(c.inconsistent != null ? c.inconsistent : 0)],
-      ["Oil px neutral", String(c.neutral != null ? c.neutral : 0)],
-      ["Obscured", String(c.obscured != null ? c.obscured : 0)]
-    ];
-    rows.forEach(function (row) {
-      var line = el("div", "kv");
-      line.appendChild(el("span", "k", row[0]));
-      line.appendChild(el("span", "v", row[1]));
-      box.appendChild(line);
-    });
-
-    // The whole point of the panel: state the limit, not just the result.
-    box.appendChild(el("div", "hint",
-      "Different sensor, different time, and over open ocean usually " +
-      "different cloud. This is context for reading the map and never a " +
-      "reason to accept or reject the radar detection."));
-  }
-
-  /* Detector provenance. A slick detection is only worth as much as the thing
-     that drew the polygon, so the checkpoint, its threshold and any silent
-     fallback are shown next to the result rather than buried in a log. */
-  function renderDetectorMeta(job) {
-    var box = $("detector-meta");
-    if (!box) return;
-    box.innerHTML = "";
-    var meta = (((job && job.detection) || {}).metrics || {}).detector_metadata;
-    if (!meta) {
-      box.appendChild(el("p", "hint", "Detector metadata appears after a run."));
-      return;
-    }
-    if (meta.is_trained_detector === false) {
-      box.appendChild(el("div", "notice bad",
-        "PHYSICS BASELINE, NOT THE TRAINED DETECTOR. " +
-        (meta.fallback_reason || "no checkpoint available") + "."));
-    }
-    [
-      ["Detector", meta.name || "unknown"],
-      ["Trained", meta.is_trained_detector ? "yes" : "no"],
-      ["Checkpoint", meta.checkpoint || "none"],
-      ["Threshold", meta.threshold != null ? fmt(meta.threshold, 3) : "n/a"],
-      ["Input", meta.input_shape ? (meta.input_shape.join(" x ")) : "n/a"],
-      ["Tiled", meta.tiled ? "yes" : "no"],
-      ["Benchmark", meta.benchmark_status || "not run"]
-    ].forEach(function (row) {
-      var line = el("div", "kv");
-      line.appendChild(el("span", "k", row[0]));
-      line.appendChild(el("span", "v", row[1]));
-      box.appendChild(line);
-    });
+    var parts = [];
+    if (c.consistent) parts.push(c.consistent + " agree");
+    if (c.inconsistent) parts.push(c.inconsistent + " disagree");
+    if (c.neutral) parts.push(c.neutral + " neutral");
+    if (c.obscured) parts.push(c.obscured + " obscured");
+    if (!parts.length) parts.push("nothing to check");
+    return parts.join(", ") + " (" + (eo.offset_label || "offset unknown") + ")";
   }
 
   function renderDetection(job) {
@@ -1164,9 +1086,36 @@
       }
       card.appendChild(det);
 
+      var evidence = s.evidence || {};
+      var supporting = evidence.positive_evidence || s.positive_evidence || [];
+      var counter = s.counter_evidence || evidence.counter_evidence || [];
+      if (supporting.length || counter.length) {
+        var assessment = el("details", "vessel-assessment");
+        assessment.appendChild(el("summary", null, "Why this vessel"));
+        if (supporting.length) {
+          var yes = el("div", "assessment-group");
+          yes.appendChild(el("strong", null, "Supporting evidence"));
+          supporting.forEach(function (item) { yes.appendChild(el("p", null, evidenceText(item))); });
+          assessment.appendChild(yes);
+        }
+        if (counter.length) {
+          var no = el("div", "assessment-group counter");
+          no.appendChild(el("strong", null, "Counter-evidence"));
+          counter.forEach(function (item) { no.appendChild(el("p", null, evidenceText(item))); });
+          assessment.appendChild(no);
+        }
+        card.appendChild(assessment);
+      }
+
       card.addEventListener("click", function () { selectSuspect(s.mmsi); });
       return card;
     }
+  }
+
+  function evidenceText(item) {
+    if (typeof item === "string") return item;
+    if (!item) return "Not reported.";
+    return item.text || item.detail || item.label || item.kind || "Evidence recorded in the job document.";
   }
 
   function selectSuspect(mmsi) {
@@ -1174,11 +1123,13 @@
     Array.prototype.forEach.call(document.querySelectorAll(".suspect"), function (n) {
       n.classList.toggle("sel", String(n.dataset.mmsi) === String(state.selected));
     });
-    // Re-render either way. Deselecting must not leave the last vessel's
-    // counter-evidence on screen attached to nothing, so the panel falls back
-    // to rank 1 rather than to the vessel that was just dismissed.
-    renderWhy(state.job);
-    if (!state.selected) return;
+    drawTracks(state.suspects);
+    renderFrame();
+    if (!state.selected) {
+      setContext("case");
+      return;
+    }
+    setContext("vessel");
     var s = state.suspects.filter(function (x) { return String(x.mmsi) === String(mmsi); })[0];
     if (!s) return;
     var pts = (s.track.samples || []).map(function (p) { return [p.lat, p.lon]; });
@@ -1287,634 +1238,7 @@
     box.appendChild(el("div", "notice ok", scoring.note));
   }
 
-  // ------------------------------------------------ investigation panels
-  /* Everything below renders one claim of the case and the limit on it.
-
-     The panels are deliberately separate rather than one long "results"
-     column, because a result and its caveat travel together. An investigator
-     reading a rank needs the counter-evidence, the envelope containment and
-     the quality band in the same viewport as the number, and the only way to
-     guarantee that is to give each of them a fixed place. */
-
-  /* Slick shape, which is what a trained eye actually uses first: a
-     weathering slick is long and thin and loosely convoluted, and a
-     biogenic or low-wind look-alike usually is not. Reporting elongation and
-     boundary roughness turns "it looks like oil" into something checkable. */
-  function renderShape(job) {
-    var box = $("shape");
-    if (!box) return;
-    box.innerHTML = "";
-    var p = job && (((job.detection || {}).polygons || [])[0] || {}).properties;
-    var sh = p && p.shape_diagnostics;
-    if (!sh) {
-      box.appendChild(el("p", "hint", "Shape diagnostics appear after a run."));
-      return;
-    }
-    var rows = [
-      ["Elongation", fmt(sh.elongation, 2)],
-      ["Solidity", fmt(sh.solidity, 3)],
-      ["Irregularity", fmt(sh.irregularity, 3)],
-      ["Boundary roughness", fmt(sh.boundary_roughness, 3)],
-      ["Components", String(sh.n_components != null ? sh.n_components : "n/a")],
-      ["Boundary complexity", fmt(p.boundary_complexity, 3)]
-    ];
-    rows.forEach(function (row) {
-      var line = el("div", "kv");
-      line.appendChild(el("span", "k", row[0]));
-      line.appendChild(el("span", "v", row[1]));
-      box.appendChild(line);
-    });
-    box.appendChild(el("div", "hint",
-      "Elongation above about 3 and a solidity below about 0.4 is the usual " +
-      "signature of a stretched weathering slick. These describe the polygon, " +
-      "not the substance in it."));
-  }
-
-  /* The uncertainty chain, stage by stage. Each stage names what is uncertain
-     and by how much, so "how sure is this case" has an answer that is not the
-     candidate's score.
-
-     `quantity` is certainty, not uncertainty: 1.0 means this stage's inputs
-     are in good order and 0.0 means the stage could not be run. The bar is
-     drawn that way round deliberately. A bar labelled "uncertainty" that filled
-     up on a well-run stage would read backwards, and the level word beside it
-     is what settles it. */
-  function renderUncertainty(job) {
-    var box = $("uncertainty");
-    if (!box) return;
-    box.innerHTML = "";
-    var q = (job && job.case_quality) || {};
-    var chain = q.uncertainty_chain;
-    if (!chain || !chain.stages) {
-      box.appendChild(el("p", "hint", "The uncertainty chain appears after a run."));
-      return;
-    }
-    chain.stages.forEach(function (st) {
-      var row = el("div", "ustage " + (st.level || "unknown").toLowerCase());
-      var head = el("div", "uh");
-      head.appendChild(el("span", "ul", st.label || st.stage));
-      head.appendChild(el("span", "uv badge", (st.level || "unknown")));
-      row.appendChild(head);
-
-      if (st.quantity != null) {
-        var bar = el("div", "ubar");
-        bar.style.setProperty("--u", Math.max(0, Math.min(1, Number(st.quantity) || 0)) * 100 + "%");
-        bar.title = "Stage certainty " + fmt(st.quantity, 2) + " of 1.0. " +
-          "This is how well the inputs to this stage are in order, not a " +
-          "probability that the case is correct.";
-        row.appendChild(bar);
-        row.appendChild(el("div", "uv-note", "stage certainty " + fmt(st.quantity, 2) + " of 1.0"));
-      }
-      var m = st.measurement || {};
-      Object.keys(m).forEach(function (k) {
-        if (m[k] === null || m[k] === undefined) return;
-        row.appendChild(el("div", "uv-note", k.replace(/_/g, " ") + ": " + fmt(m[k], 2)));
-      });
-      if (st.note) row.appendChild(el("div", "uv-note", st.note));
-      box.appendChild(row);
-    });
-    box.appendChild(el("div", "hint",
-      "Case quality " + (q.overall || "unrated") + " is the weakest material " +
-      "input, not an average and not a probability."));
-  }
-
-  /* The safe-fail state, and the conclusions the case is allowed to make.
-
-     An empty result and a withheld conclusion are findings, and the pipeline
-     distinguishes them deliberately: "no oil here" and "oil here, but no
-     vessel is a defensible candidate" are different answers and an operator
-     acts on them differently. */
-  function renderSafeFail(job) {
-    var box = $("safefail");
-    if (!box) return;
-    box.innerHTML = "";
-    if (!job) {
-      box.appendChild(el("p", "hint", "No case open."));
-      return;
-    }
-    var q = job.case_quality || {};
-    var sf = q.safe_fail || {};
-
-    var head = el("div", "sf-state " + (sf.state || "none").replace(/\s+/g, "-").toLowerCase());
-    head.appendChild(el("span", "sf-label", "Case state"));
-    head.appendChild(el("b", null, sf.state || "REPORTED"));
-    box.appendChild(head);
-    if (sf.detail) box.appendChild(el("p", "hint", sf.detail));
-
-    if (sf.reason) box.appendChild(el("div", "notice", sf.reason));
-
-    var band = el("div", "sf-band " + (q.overall || "").toLowerCase());
-    band.appendChild(el("span", "sf-label", "Evidence quality"));
-    band.appendChild(el("b", null, (q.overall || "UNRATED") +
-      (q.label ? " · " + q.label : "")));
-    box.appendChild(band);
-
-    (q.conclusions || []).forEach(function (c) {
-      box.appendChild(el("div", "conclusion", c));
-    });
-
-    // `ordered_factors` is the weakest-first list of stage keys and `factors`
-    // is the same information keyed by stage, carrying the level and the
-    // measurement. Reading the order alone gave a column of bare internal keys
-    // ("sar_detection", "origin_certainty") with no level beside them, which
-    // is the one thing this panel exists to show.
-    var ordered = q.ordered_factors || [];
-    var factors = q.factors || {};
-    if (ordered.length) {
-      var w = el("div", "weakest");
-      w.appendChild(el("div", "sf-label", "Weakest material inputs, in order"));
-      ordered.slice(0, 5).forEach(function (key) {
-        var f = factors[key] || {};
-        var item = el("div", "witem " + String(f.level || "").toLowerCase());
-        item.appendChild(el("span", "wn", f.label || f.stage || String(key)));
-        var detail = f.level || "";
-        if (f.quantity != null) detail += " · " + fmt(f.quantity, 2);
-        item.appendChild(el("span", "wv", detail));
-        if (f.note) item.title = f.note;
-        w.appendChild(item);
-      });
-      box.appendChild(w);
-    }
-  }
-
-  /* Why this vessel, and why not.
-
-     The two halves are separated rather than interleaved because the second
-     one is the one that stops a lead being read as a finding. A ranked list
-     that puts "counter-evidence" under everything else is a ranked list that
-     gets skimmed. Here the objections sit directly under the reason the vessel
-     is on the list, at the same visual weight. */
-  function renderWhy(job) {
-    var box = $("why");
-    if (!box) return;
-    box.innerHTML = "";
-    var list = ((job && job.attribution) || {}).suspects || [];
-    if (!list.length) {
-      box.appendChild(el("p", "hint", "No candidate to argue about."));
-      return;
-    }
-    var s = list.filter(function (x) { return x.mmsi === state.selected; })[0] || list[0];
-    if (!s) return;
-
-    var ev = s.evidence || {};
-    var head = el("div", "why-head");
-    head.appendChild(el("span", "rank", "#" + s.rank));
-    head.appendChild(el("span", "nm", s.name || "UNKNOWN"));
-    head.appendChild(el("span", "sc", fmt(s.score, 1) + "%"));
-    box.appendChild(head);
-
-    // Opportunity and evidence are separate numbers on purpose. "Was nearby"
-    // and "the evidence lines up" are different claims, and collapsing them
-    // into one score is how a vessel that merely passed through gets
-    // described as a source.
-    var split = el("div", "split");
-    [
-      ["Opportunity", ev.opportunity_level, ev.opportunity_score,
-       "Where it was and when. Says nothing about evidence."],
-      ["Evidence", ev.evidence_level, ev.evidence_score,
-       "How well the observation matches the modelled slick."]
-    ].forEach(function (r) {
-      var cell = el("div", "cell " + String(r[1] || "").toLowerCase());
-      cell.appendChild(el("div", "cl", r[0]));
-      cell.appendChild(el("div", "cv", r[1] || "UNRATED"));
-      cell.appendChild(el("div", "cs", fmt(r[2], 1) + "%"));
-      cell.appendChild(el("div", "cn", r[3]));
-      split.appendChild(cell);
-    });
-    box.appendChild(split);
-
-    var region = s.region || {};
-    var win = s.release_window || {};
-    var geom = el("div", "geom");
-    [
-      ["Inside 50% envelope", region.inside_50 != null ? String(region.inside_50) : "n/a"],
-      ["Inside 90% envelope", region.inside_90 != null ? String(region.inside_90) : "n/a"],
-      ["Observed track in zone", region.observed_track_fraction != null
-        ? fmt(region.observed_track_fraction * 100, 0) + "%" : "n/a"],
-      ["Release window", win.applicable === false ? "not applicable"
-        : (win.inside != null ? String(win.inside) : "n/a")]
-    ].forEach(function (row) {
-      var line = el("div", "kv");
-      line.appendChild(el("span", "k", row[0]));
-      line.appendChild(el("span", "v", row[1]));
-      geom.appendChild(line);
-    });
-    box.appendChild(geom);
-
-    var pos = el("div", "why-col");
-    pos.appendChild(el("div", "col-h good", "Why this vessel"));
-    var positives = (ev.positive_evidence || ev.reasons || []);
-    if (!positives.length) {
-      pos.appendChild(el("p", "hint", "No supporting reason recorded."));
-    } else {
-      positives.forEach(function (r) {
-        var it = el("div", "ev-item pos");
-        it.appendChild(el("span", "cat", r.category || "opportunity"));
-        it.appendChild(el("span", "txt", r.text || String(r)));
-        pos.appendChild(it);
-      });
-    }
-    box.appendChild(pos);
-
-    var neg = el("div", "why-col");
-    neg.appendChild(el("div", "col-h bad",
-      "Why not · " + (s.counter_evidence_count || 0) +
-      " objection" + (s.counter_evidence_count === 1 ? "" : "s")));
-    var counter = s.counter_evidence || (ev.counter_evidence) || [];
-    if (!counter.length) {
-      neg.appendChild(el("p", "hint",
-        "No counter-evidence recorded. That is the absence of a recorded " +
-        "objection, not evidence that none exists."));
-    } else {
-      counter.forEach(function (r) {
-        var it = el("div", "ev-item neg");
-        it.appendChild(el("span", "cat", r.category || "counter_evidence"));
-        it.appendChild(el("span", "txt", r.text || String(r)));
-        neg.appendChild(it);
-      });
-    }
-    box.appendChild(neg);
-
-    var dq = ev.data_quality || [];
-    var uq = ev.uncertainty || [];
-    if (dq.length || uq.length) {
-      var meta = el("div", "why-col");
-      meta.appendChild(el("div", "col-h", "Track data quality"));
-      dq.concat(uq).forEach(function (r) {
-        var it = el("div", "ev-item meta-item");
-        it.appendChild(el("span", "cat", r.kind || r.category || "data"));
-        it.appendChild(el("span", "txt", r.text || String(r)));
-        meta.appendChild(it);
-      });
-      box.appendChild(meta);
-    }
-
-    box.appendChild(el("div", "notice",
-      "A lead for investigation. Not a finding of discharge, and not a " +
-      "measurement of blame."));
-  }
-
-  /* Counterfactual sensitivity: which assumptions carry the ranking.
-
-     The study is per candidate. For each one it removes or widens one declared
-     assumption, re-ranks, and reports whether the vessel held its place. The
-     point is not the new score, it is the stability label: a top candidate
-     that only holds when the origin is exactly where the model put it is a
-     weaker lead than one that holds across the window, and an operator can only
-     see the difference if both are on the page.
-
-     Every scenario is listed, including the ones that could not be evaluated.
-     A scenario that is quietly dropped reads as "this assumption does not
-     matter", which is the opposite of what a missing input means. */
-  function renderSensitivity(job) {
-    var box = $("sensitivity");
-    if (!box) return;
-    box.innerHTML = "";
-    var rows = ((job && job.attribution) || {}).sensitivity || [];
-    if (!rows.length) {
-      box.appendChild(el("p", "hint", job
-        ? "No counterfactual study was recorded for this case."
-        : "Counterfactual scenarios appear after a run."));
-      return;
-    }
-
-    rows.forEach(function (r) {
-      var card = el("div", "scen");
-      var h = el("div", "sh");
-      h.appendChild(el("span", "sl", r.candidate_name || ("MMSI " + r.candidate_id)));
-      var stability = r.stability || "NOT_EVALUATED";
-      var badge = el("span", "badge " + (stability === "STABLE" ? "hold"
-        : (stability === "NOT_EVALUATED" ? "na" : "flip")));
-      badge.textContent = stability.replace(/_/g, " ");
-      badge.title = stability === "STABLE"
-        ? "The ranking held under every scenario that could be evaluated."
-        : (stability === "UNSTABLE" ? "The rank changed under at least one scenario."
-        : (stability === "SENSITIVE" ? "The score moved more than 15 points under at least one scenario."
-        : "No scenario could be evaluated, so nothing is claimed either way."));
-      h.appendChild(badge);
-      card.appendChild(h);
-
-      var sub = el("div", "uv-note",
-        "baseline " + fmt(r.baseline_score, 1) + "% at rank " + r.baseline_rank +
-        " · largest move " + fmt(r.max_score_delta, 1) + " points" +
-        (r.primary_dependency ? " under " + String(r.primary_dependency).replace(/_/g, " ") : ""));
-      card.appendChild(sub);
-
-      var scen = el("div", "scenarios");
-      (r.scenarios || []).forEach(function (s) {
-        var line = el("div", "srow" + (s.applicable === false ? " na" : ""));
-        if (s.applicable === false) {
-          line.appendChild(el("span", "sn", s.label || s.name));
-          line.appendChild(el("span", "sv2", "NOT EVALUATED"));
-        } else {
-          line.appendChild(el("span", "sn", s.label || s.name));
-          line.appendChild(el("span", "sv2", fmt(s.score, 1) + "% at rank " + s.rank +
-            (s.delta ? " (" + (s.delta > 0 ? "+" : "") + fmt(s.delta, 1) + ")" : "")));
-        }
-        if (s.question) line.title = s.question;
-        if (s.reason) line.title = s.reason;
-        scen.appendChild(line);
-      });
-      card.appendChild(scen);
-
-      if (r.note) card.appendChild(el("div", "uv-note", r.note));
-      box.appendChild(card);
-    });
-
-    box.appendChild(el("div", "hint",
-      "Scenarios create no new evidence and are not probabilities. They answer " +
-      "one question only: would a reviewer who disagreed with one of our stated " +
-      "assumptions rank this differently?"));
-  }
-
-  /* Ablation: which stage of the pipeline is carrying the result.
-
-     Rungs that could not be evaluated are listed as such. A row that is
-     silently absent reads as "this stage did not matter", which is the exact
-     opposite of what not having the data means. */
-  function renderAblation(job) {
-    var box = $("ablation");
-    if (!box) return;
-    box.innerHTML = "";
-    var study = (job && job.ablation) || null;
-    if (!study) {
-      box.appendChild(el("p", "hint",
-        "The ablation study appears after a run. It re-scores the same case " +
-        "with one stage of the pipeline removed at a time."));
-      return;
-    }
-    if (study.available === false) {
-      box.appendChild(el("div", "notice bad",
-        "Ablation not available: " + (study.reason || "no candidate set to re-rank.")));
-      return;
-    }
-    var ladder = study.ladder || [];
-    if (!ladder.length) {
-      box.appendChild(el("p", "hint", "No ablation rungs were produced for this case."));
-      return;
-    }
-    ladder.forEach(function (r) {
-      var ok = r.status === "computed";
-      var row = el("div", "rung" + (ok ? "" : " na"));
-      row.appendChild(el("span", "rid", r.step || r.key));
-      var name = el("span", "rname", r.label || r.key);
-      name.title = r.description || r.question || "";
-      row.appendChild(name);
-      if (!ok) {
-        row.appendChild(el("span", "rv na", "NOT EVALUATED"));
-        row.title = r.reason || "This rung could not be evaluated for this case.";
-      } else {
-        var bits = [];
-        var agree = r.agreement || {};
-        if (agree.top1_match != null) {
-          bits.push(agree.top1_match ? "top 1 held" : "top 1 changed");
-        }
-        if (r.spearman_vs_full != null) bits.push("rho " + fmt(r.spearman_vs_full, 3));
-        row.appendChild(el("span", "rv", bits.join(" · ")));
-      }
-      box.appendChild(row);
-    });
-    if (study.caveat) box.appendChild(el("div", "hint", study.caveat));
-    box.appendChild(el("div", "hint",
-      "A rung marked NOT EVALUATED is a missing input, not a measured " +
-      "insensitivity. It makes no claim either way."));
-  }
-
-  /* Calibration. For a single case this is almost always not estimable, and
-     that is the correct answer rather than a gap in the feature: a calibration
-     figure needs outcome labels, and an unconfirmed scene has none. */
-  function renderCalibration(job) {
-    var box = $("calibration");
-    if (!box) return;
-    box.innerHTML = "";
-    var r = (job && job.calibration) || null;
-    if (!r) {
-      box.appendChild(el("p", "hint", "The calibration report appears after a run."));
-      return;
-    }
-    var head = el("div", "cal-status " + (r.estimable ? "ok" : "na"));
-    head.appendChild(el("b", null, (r.status || "unknown").replace(/_/g, " ")));
-    box.appendChild(head);
-
-    var rows = [
-      ["Labelled samples", String(r.n != null ? r.n : 0) + " of " + (r.min_samples || 20)],
-      ["Brier score", r.brier != null ? fmt(r.brier, 4) : "n/a"],
-      ["Brier skill", r.brier_skill != null ? fmt(r.brier_skill, 3) : "n/a"],
-      ["Log loss", r.log_loss != null ? fmt(r.log_loss, 4) : "n/a"],
-      ["ECE", r.ece != null ? fmt(r.ece, 4) : "n/a"],
-      ["AUC", r.auc != null ? fmt(r.auc, 3) : "n/a"]
-    ];
-    rows.forEach(function (row) {
-      var line = el("div", "kv");
-      line.appendChild(el("span", "k", row[0]));
-      line.appendChild(el("span", "v", row[1]));
-      box.appendChild(line);
-    });
-    if (r.reliability && r.reliability.length) {
-      var rc = el("div", "reliability");
-      rc.appendChild(el("div", "cal-lbl", "Reliability curve"));
-      r.reliability.forEach(function (b) {
-        var bar = el("div", "rel-row");
-        bar.appendChild(el("span", "rb", String(b.bin != null ? b.bin : "")));
-        bar.appendChild(el("span", "rv", "pred " + fmt(b.mean_predicted, 2)));
-        bar.appendChild(el("span", "ro", "obs " + fmt(b.observed_frequency, 2)));
-        bar.appendChild(el("span", "rn", "n=" + b.n));
-        rc.appendChild(bar);
-      });
-      box.appendChild(rc);
-    }
-    box.appendChild(el("div", "notice " + (r.estimable ? "ok" : ""),
-      r.message || "The investigative score is an uncalibrated evidence " +
-      "index. It is not a probability that a vessel is responsible."));
-  }
-
-  /* Provenance: what went into the case, and what is missing from it.
-
-     Completeness is shown as a count of absent inputs rather than a green
-     tick, because "complete" and "we checked and there was nothing to find"
-     are different states and only one of them is a result. */
-  function renderProvenance(job) {
-    var box = $("provenance");
-    if (!box) return;
-    box.innerHTML = "";
-    var p = (job && job.provenance) || null;
-    if (!p) {
-      box.appendChild(el("p", "hint", "Provenance appears after a run."));
-      return;
-    }
-    var c = p.completeness || {};
-    var rows = [
-      ["Case hash", p.case_hash || "n/a"],
-      ["Software", (p.software || {}).version || "n/a"],
-      ["Pipeline", (p.software || {}).pipeline_version || "n/a"],
-      ["Seeds", JSON.stringify(p.seeds || {})],
-      ["Inputs recorded", String((p.inputs || []).length)],
-      ["Inputs absent", String((p.inputs_missing || []).length)],
-      ["Complete", c.complete ? "yes" : "no"]
-    ];
-    rows.forEach(function (row) {
-      var line = el("div", "kv");
-      line.appendChild(el("span", "k", row[0]));
-      line.appendChild(el("span", "v", row[1]));
-      box.appendChild(line);
-    });
-    var missing = p.inputs_missing || [];
-    if (missing.length) {
-      var m = el("div", "missing");
-      m.appendChild(el("div", "cal-lbl", "Absent inputs"));
-      missing.forEach(function (x) {
-        var name = typeof x === "string" ? x : (x.name || x.key || "input");
-        var it = el("div", "mitem");
-        it.appendChild(el("span", "mk", name));
-        it.appendChild(el("span", "mw", (typeof x === "object" && x.reason) || "absent"));
-        m.appendChild(it);
-      });
-      box.appendChild(m);
-    }
-    if (p.warnings && p.warnings.length) {
-      var w = el("div", "missing");
-      w.appendChild(el("div", "cal-lbl", "Provenance warnings"));
-      p.warnings.forEach(function (x) {
-        w.appendChild(el("div", "hint", x));
-      });
-      box.appendChild(w);
-    }
-  }
-
-  /* The event timeline, ordered, with every entry tagged by what kind of claim
-     it is. Mixing a modelled origin hour with a satellite acquisition on one
-     unlabeled axis is how an inference ends up quoted as an observation. */
-  function renderEvents(job) {
-    var box = $("events");
-    if (!box) return;
-    box.innerHTML = "";
-    if (!job) {
-      box.appendChild(el("p", "hint", "The case timeline appears after a run."));
-      return;
-    }
-    var events = buildEvents(job);
-    if (!events.length) {
-      box.appendChild(el("p", "hint", "No dated events for this case."));
-      return;
-    }
-    events.forEach(function (ev) {
-      var row = el("div", "evt " + ev.kind);
-      row.appendChild(el("span", "ek", ev.kind));
-      var b = el("div", "eb");
-      b.appendChild(el("div", "el", ev.label));
-      b.appendChild(el("div", "et", (ev.t || "").replace(" UTC", "")));
-      b.appendChild(el("div", "ed", ev.detail));
-      row.appendChild(b);
-      box.appendChild(row);
-    });
-    box.appendChild(el("div", "hint",
-      "Observed entries are measurements. Inferred entries are modelled and " +
-      "carry their own uncertainty. Attributed entries are conclusions."));
-  }
-
-  /* Built here rather than fetched, because every field is already in the job
-     document and a second round trip to re-read it would be a way for the
-     timeline to disagree with the map beside it. */
-  function buildEvents(job) {
-    var out = [];
-    var scene = job.scene || {};
-    var det = job.detection || {};
-    var m = det.metrics || {};
-    var drift = job.drift || {};
-    var origin = drift.origin || {};
-    var eo = det.eo || {};
-
-    function add(kind, t, label, detail) {
-      out.push({ kind: kind, t: t || "", label: label, detail: detail || "" });
-    }
-
-    add("observed", scene.t_sat || job.created, "SAR acquisition",
-      "The radar observed the water at this time. Everything downstream is " +
-      "relative to it.");
-
-    if (origin.t) {
-      add("inferred", origin.t, "Estimated release",
-        "Modelled: the first hour where the ensemble spread exceeded the " +
-        "trigger. Not an observed discharge time. Zone " +
-        fmt(origin.spread_km, 1) + " km.");
-    }
-    var iv = origin.release_time_interval || {};
-    if (iv.start && iv.end) {
-      add("inferred", iv.start, "Release window opens",
-        "Earliest scenario origin across the drift ensemble.");
-      add("inferred", iv.end, "Release window closes",
-        "Latest scenario origin across the drift ensemble.");
-    }
-    if (eo.available && eo.acquired) {
-      var dl = eo.time_delta || {};
-      add("observed", eo.acquired, "Optical acquisition",
-        "Sentinel-2 overpass, " + (dl.hours != null ? fmt(dl.hours, 1) : "?") +
-        " h relative to the radar. " + (eo.status || "context only") + ".");
-    }
-    ((job.attribution || {}).suspects || []).slice(0, 10).forEach(function (s) {
-      var d = s.detail || {};
-      if (!d.closest_approach_utc) return;
-      add(s.rank === 1 ? "attributed" : "inferred", d.closest_approach_utc,
-        (s.name || s.mmsi) + " closest approach",
-        "Rank " + s.rank + ", " + fmt(s.score, 1) + "%, " +
-        fmt(d.origin_distance_km, 1) + " km from the origin estimate. " +
-        (s.counter_evidence_count || 0) + " objection(s) recorded.");
-    });
-
-    out.sort(function (a, b) { return a.t < b.t ? -1 : (a.t > b.t ? 1 : 0); });
-    return out;
-  }
-
-  /* Recent cases, from the case index rather than from anything held in
-     memory, so the console opens on the work that already exists instead of
-     an empty state. Each row carries the quality band and the safe-fail state
-     for the same reason the header does: a list showing only candidate counts
-     invites reading an empty case as a strong one. */
-  function loadCaseIndex() {
-    var box = $("case-list");
-    if (!box) return Promise.resolve([]);
-    return getJSON("/api/cases").then(function (r) {
-      box.innerHTML = "";
-      var list = (r && r.cases) || [];
-      if (!list.length) {
-        box.appendChild(el("p", "hint", "No cases run on this machine yet."));
-        return list;
-      }
-      list.forEach(function (c) {
-        var row = el("button", "case-row");
-        row.type = "button";
-        row.appendChild(el("span", "cband " + String(c.case_quality || "unrated").toLowerCase(),
-          c.case_quality || "unrated"));
-        var main = el("span", "cmain");
-        main.appendChild(el("span", "cid", c.scene_id || c.job_id));
-        var top = c.top_candidate;
-        main.appendChild(el("span", "ctop", top
-          ? ("#" + fmt(top.score, 1) + " " + (top.name || top.mmsi) +
-             (top.counter_evidence_count ? " · " + top.counter_evidence_count + " obj" : ""))
-          : (c.safe_fail_state || "no candidate")));
-        row.appendChild(main);
-        row.appendChild(el("span", "cdt", (c.created || "").substring(0, 10)));
-        row.title = (c.safe_fail_state ? c.safe_fail_state + ". " : "") +
-          c.oil_polygons + " polygon(s), " + c.suspects + " candidate(s). " +
-          (c.case_hash ? "hash " + String(c.case_hash).substring(0, 12) : "");
-        row.addEventListener("click", function () {
-          getJSON("/api/jobs/" + c.job_id).then(showJob)
-            .catch(function (e) {
-              $("notices").appendChild(el("div", "notice bad",
-                "Could not open that case: " + e.message));
-            });
-        });
-        box.appendChild(row);
-      });
-      return list;
-    }).catch(function (e) {
-      box.innerHTML = "";
-      box.appendChild(el("p", "hint", "Case index unavailable: " + e.message));
-      return [];
-    });
-  }
-
-
+  // ------------------------------------------------------------------ flow
   function fitToJob(job) {
     var pts = [];
     var det = job.detection || {};
@@ -1943,10 +1267,49 @@
     renderSpreadChart(job);
     renderEvidence(job);
     renderVesselList(job);
+    renderTimelineEvents(job);
+  }
+
+  /* These positions are direct timestamps from the saved job. The tag keeps an
+     inferred origin distinct from an observed SAR acquisition. */
+  function renderTimelineEvents(job) {
+    var box = $("timeline-events");
+    if (!box) return;
+    box.innerHTML = "";
+    if (!job) {
+      box.appendChild(el("span", "timeline-empty",
+        "Run an investigation to place observed and modelled events on this timeline."));
+      return;
+    }
+    var drift = job.drift || {};
+    var events = [];
+    if (drift.origin && drift.origin.t) events.push({ kind: "inferred", label: "Estimated origin", t: drift.origin.t });
+    (((job.attribution || {}).suspects) || []).slice(0, 3).forEach(function (s) {
+      var t = (s.detail || {}).closest_approach_utc;
+      if (t) events.push({ kind: "vessel", label: (s.name || "Candidate") + " closest approach", t: t, mmsi: s.mmsi });
+    });
+    var observed = (job.scene || {}).t_sat || job.created;
+    if (observed) events.push({ kind: "observed", label: "SAR acquisition", t: observed });
+    var forecast = drift.forecast_hourly || [];
+    if (forecast.length && forecast[forecast.length - 1].t) {
+      events.push({ kind: "predicted", label: "Forecast horizon", t: forecast[forecast.length - 1].t });
+    }
+    events.sort(function (a, b) { return new Date(a.t) - new Date(b.t); });
+    events.forEach(function (event) {
+      var button = el("button", "timeline-event " + event.kind);
+      button.type = "button";
+      button.appendChild(el("span", "event-kind", event.kind));
+      button.appendChild(el("span", "event-label", event.label));
+      button.appendChild(el("time", "event-time", utc(event.t)));
+      if (event.mmsi != null) button.addEventListener("click", function () { selectSuspect(event.mmsi); });
+      box.appendChild(button);
+    });
   }
 
   function showJob(job) {
     state.job = job;
+    state.selected = null;
+    setContext("case");
     clearAll();
     stop();
     drawDetection(job);
@@ -1960,27 +1323,10 @@
     renderTrace(job);
     renderNotices(job);
     renderCase(job);
-
-    // The panels that answer "how sure is this" and "against what". Grouped
-    // here rather than inside renderCase because they are the investigation
-    // layer: renderCase is the run summary that also has to work before any
-    // run exists, and these five are only meaningful after one.
-    renderSafeFail(job);
-    renderUncertainty(job);
-    renderWhy(job);
-    renderSensitivity(job);
-    renderAblation(job);
-    renderCalibration(job);
-    renderProvenance(job);
-    renderEvents(job);
-    renderShape(job);
-    renderOptical(job);
-    renderDetectorMeta(job);
-
     buildFrames(job);
     fitToJob(job);
-    loadCaseIndex();
     ["ex-json", "ex-geo", "ex-note"].forEach(function (id) { $(id).disabled = false; });
+    if ($("report-preview")) $("report-preview").disabled = false;
   }
 
   /* Detection alone is twenty-five to thirty seconds on a laptop CPU, and
@@ -2097,18 +1443,7 @@
       ["detection", "No run yet. Pick a scene and run the analysis."],
       ["origin", "The hindcast has not run."],
       ["suspects", "Ranked likelihood for investigation. Not proof of discharge."],
-      ["trace", "Step timings appear here after a run."],
-      ["safefail", "No case open."],
-      ["uncertainty", "The uncertainty chain appears after a run."],
-      ["why", "No candidate to argue about."],
-      ["sensitivity", "Counterfactual scenarios appear after a run."],
-      ["ablation", "The ablation study appears after a run."],
-      ["calibration", "The calibration report appears after a run."],
-      ["provenance", "Provenance appears after a run."],
-      ["events", "The case timeline appears after a run."],
-      ["shape", "Shape diagnostics appear after a run."],
-      ["optical", "Sentinel-2 corroboration. Never an input to detection."],
-      ["detector-meta", "Detector metadata appears after a run."]
+      ["trace", "Step timings appear here after a run."]
     ];
     blanks.forEach(function (b) {
       var n = $(b[0]);
@@ -2140,6 +1475,18 @@
 
     var slider = $("slider");
     if (slider) { slider.value = 0; slider.max = 0; slider.disabled = true; }
+
+    /* The evidence band describes the case that was on screen. Leaving the
+       last one's band up after a reset would attribute one case's confidence
+       to whatever loads next, so it is cleared with the rest of the run. */
+    var band = $("case-q");
+    if (band) { band.textContent = ""; band.hidden = true; }
+    var detail = $("case-detail");
+    if (detail) {
+      detail.innerHTML = "";
+      detail.appendChild(el("p", "hint",
+        "Choose a saved case to inspect its evidence, uncertainty and provenance."));
+    }
   }
 
   function renderSceneInfo(scene) {
@@ -2218,31 +1565,40 @@
     }
   }
 
-  /* ------------------------------------------------------------------- nav
-     The six destinations are modes over the same run, not separate pages, and
-     they are ordered the way a case is actually worked: what happened, what
-     was detected, where it came from, who is involved, how fragile is the
-     ranking, and what the answer rests on. Everything they show comes from the
-     job document already in memory, so switching mode never refetches and can
-     never disagree with itself. */
+/* ------------------------------------------------------------------- nav
+     The destinations are views over the same run, not separate pages.
+     Everything they show comes from the job document already in memory. */
   var selectView = null;
+  var DEFAULT_VIEW = "investigate";
 
   function initNav() {
     var links = Array.prototype.slice.call(document.querySelectorAll(".navlink"));
-    function select(view) {
-      // A deep link can name a mode that no longer exists, and hiding every
-      // panel at once is how a shared case URL ends up showing an empty rail
-      // with no indication of why. Unknown names fall back to the overview.
-      var known = links.map(function (l) { return l.dataset.view; });
-      if (known.indexOf(view) < 0) view = known[0] || "overview";
+    /* Case URLs are shared, so a mode that has since been renamed still arrives
+       here. Selecting a name no tab claims hides every panel at once, because
+       each panel's visibility is `dataset.view === view` and nothing matches:
+       an empty rail with no visible reason and no error. So an unknown name
+       falls back to the default view and says so. */
+    var known = links.map(function (l) { return l.dataset.view; });
+    function select(requested) {
+      var view = known.indexOf(requested) < 0 ? DEFAULT_VIEW : requested;
+      if (view !== requested) {
+        var notice = el("div", "notice",
+          "No view called \u201c" + requested + "\u201d. Showing " + view + ".");
+        $("notices").appendChild(notice);
+      }
       links.forEach(function (l) {
         l.setAttribute("aria-selected", l.dataset.view === view ? "true" : "false");
       });
       Array.prototype.forEach.call(document.querySelectorAll(".view"), function (v) {
         v.hidden = v.dataset.view !== view;
       });
-      state.view = view;
-      if (view === "attribution") renderVesselList(state.job);
+state.view = view;
+      if (view === "vessels") renderVesselList(state.job);
+      if (view === "cases") loadCases();
+      if (view === "drift") setContext("drift");
+      else if (view === "vessels") setContext("vessel");
+      else if (view === "data") setContext("data");
+      else if (view === "investigate") setContext(state.focus === "slick" ? "slick" : "case");
     }
     links.forEach(function (l, i) {
       l.addEventListener("click", function () { select(l.dataset.view); });
@@ -2255,7 +1611,7 @@
         next.focus();
       });
     });
-    select("overview");
+    select(DEFAULT_VIEW);
     selectView = select;
   }
 
@@ -2274,7 +1630,7 @@
   }
 
   function showVesselsView() {
-    var l = document.querySelector('.navlink[data-view="attribution"]');
+    var l = document.querySelector('.navlink[data-view="vessels"]');
     if (l) l.click();
   }
 
@@ -2288,8 +1644,6 @@
       st.className = "pill";
       meta.textContent = "Pick a scene on the left and run the analysis.";
       co.textContent = "-";
-      var qb0 = $("case-q");
-      if (qb0) { qb0.textContent = ""; qb0.className = "cband"; }
       return;
     }
     var det = job.detection || {};
@@ -2302,24 +1656,6 @@
     t.title = "Job " + (job.job_id || "");
     st.textContent = clean ? "Clean" : "Active";
     st.className = "pill " + (clean ? "clean" : "active");
-
-    // The quality band rides in the header rather than only in the rail. It is
-    // the single fact that changes how every other number should be read, so it
-    // belongs where it is visible no matter which mode is open. It is labelled
-    // inline so it cannot be read as a score.
-    var qband = $("case-q");
-    if (qband) {
-      var q = job.case_quality || {};
-      var sf = q.safe_fail || {};
-      var parts = [];
-      if (q.overall) parts.push("EVIDENCE " + q.overall);
-      if (sf.state) parts.push(sf.state);
-      qband.textContent = parts.join("  ·  ") || "";
-      qband.className = "cband " + String(q.overall || "unrated").toLowerCase() +
-        (sf.state ? " has-state" : "");
-      qband.title = "Case quality describes the evidence available, not a " +
-        "probability that anyone discharged oil.";
-    }
 
     var first = (polys[0] || {}).properties;
     meta.textContent = [
@@ -2630,6 +1966,8 @@
     var box = $("scene-list");
     if (!box) return;
     box.innerHTML = "";
+    var count = $("scene-count");
+    if (count) count.textContent = list.length ? list.length : "";
     list.forEach(function (sc) {
       var row = el("button", "scene-row");
       row.type = "button";
@@ -2649,6 +1987,7 @@
     var sel = $("scene");
     if (sel) sel.value = id;
     state.scene = state.scenes.filter(function (s) { return s.id === id; })[0] || null;
+    setContext("case");
     Array.prototype.forEach.call(document.querySelectorAll(".scene-row"), function (r) {
       r.setAttribute("aria-current", r.dataset.id === id ? "true" : "false");
     });
@@ -2731,11 +2070,476 @@
     });
   }
 
+  // ------------------------------------------------ case and operations API
+  function isoFromInput(value) {
+    return value ? new Date(value).toISOString() : null;
+  }
+
+  function prettyResult(value) {
+    return JSON.stringify(value, null, 2);
+  }
+
+  function renderOperationResult(title, value, error) {
+    var box = $("ops-result");
+    if (!box) return;
+    box.innerHTML = "";
+    box.appendChild(el("strong", error ? "op-error" : "", title));
+    var pre = el("pre", "api-result", error ? String(error.message || error) : prettyResult(value));
+    box.appendChild(pre);
+  }
+
+  function callOperation(title, request, onSuccess) {
+    renderOperationResult(title + " running", { status: "working" });
+    request.then(function (result) {
+      renderOperationResult(title, result);
+      if (onSuccess) onSuccess(result);
+      return result;
+    }).catch(function (error) {
+      renderOperationResult(title + " failed", null, error);
+    });
+  }
+
+/* --------------------------------------------------------- case evidence
+
+     These renderers read the fields the writers actually emit, and nothing
+     else. A missing field is rendered as absent data, which is the one failure
+     mode this project cannot afford: "not reported" and "not there" look
+     identical on the page. So every optional read goes through `say`, which
+     states the absence rather than leaving a blank cell. */
+
+  function say(parent, key, value, missing) {
+    if (value === null || value === undefined || value === "") {
+      if (missing) parent.appendChild(el("div", "kv absent",
+        el("span", "k", key), el("span", "v", missing)));
+      return;
+    }
+    parent.appendChild(el("div", "kv",
+      el("span", "k", key), el("span", "v", String(value))));
+  }
+
+  /* `quantity` runs 0.0 for "this stage could not be run" to 1.0 for "this
+     stage's inputs are in good order". Drawn as an uncertainty it would fill up
+     on a well-run stage and empty out on a stage that never executed, which is
+     backwards, and the colour would follow it. So the bar is labelled stage
+     certainty and the good end is the good colour. */
+  function renderUncertainty(part) {
+    var section = el("section", "case-section");
+    section.appendChild(el("h3", null, "Stage certainty"));
+    var chain = (part || {}).uncertainty_chain;
+    if (!chain || !Array.isArray(chain.stages) || !chain.stages.length) {
+      section.appendChild(el("p", "hint", "No uncertainty chain was recorded for this case."));
+      return section;
+    }
+    section.appendChild(el("p", "hint",
+      "Each stage carries a certainty, where 1.0 means that stage's inputs are " +
+      "in good order and 0.0 means the stage could not be run. It is not an " +
+      "uncertainty magnitude and not a probability."));
+    chain.stages.forEach(function (st) {
+      var level = String(st.level || "").toUpperCase();
+      var row = el("div", "ustage " + (level === "HIGH" ? "high" :
+        level === "MEDIUM" ? "mid" : level === "LOW" ? "low" : "unreported"));
+      var head = el("div", "ustage-head");
+      head.appendChild(el("span", "ustage-name", st.label || st.stage || "Stage"));
+      head.appendChild(el("span", "ustage-level", level || "NOT REPORTED"));
+      row.appendChild(head);
+      var q = st.quantity;
+      var track = el("div", "ubar");
+      track.setAttribute("role", "img");
+      track.setAttribute("aria-label", "Stage certainty " +
+        (q === null || q === undefined ? "not reported" : fmt(q, 2) + " of 1.0"));
+      var fill = el("div", "ufill");
+      fill.style.width = (q === null || q === undefined) ? "0%" : Math.max(0, Math.min(100, q * 100)) + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      row.appendChild(el("div", "ustage-qty",
+        (q === null || q === undefined) ? "certainty not reported" : "stage certainty " + fmt(q, 2)));
+      if (st.note) row.appendChild(el("div", "ustage-note", st.note));
+      section.appendChild(row);
+    });
+    if (part.safe_fail) {
+      section.appendChild(el("div", "notice",
+        "Safe-fail state: " + part.safe_fail));
+    }
+    return section;
+  }
+
+  /* Sensitivity is per candidate, not one flat row per scenario, so this walks
+     `scenarios` inside each candidate record and reads that candidate's own
+     baseline fields. */
+  function renderSensitivity(part) {
+    var section = el("section", "case-section");
+    section.appendChild(el("h3", null, "Sensitivity"));
+    var rows = (part || {}).sensitivity;
+    if (!Array.isArray(rows) || !rows.length) {
+      section.appendChild(el("p", "hint", "No sensitivity study was recorded for this case."));
+      return section;
+    }
+    section.appendChild(el("p", "hint",
+      "Each scenario removes one declared assumption or widens one declared " +
+      "uncertainty, then re-ranks. They create no new evidence and are not " +
+      "probabilities."));
+    rows.forEach(function (r) {
+      var head = el("div", "srow-head");
+      head.appendChild(el("span", "srow-name",
+        (r.candidate_name || "Vessel") + " " + (r.candidate_id || "")));
+      head.appendChild(el("span", "srow-stab " + String(r.stability || "").toLowerCase(),
+        String(r.stability || "NOT EVALUATED").replace(/_/g, " ")));
+      var block = el("div", "srow");
+      block.appendChild(head);
+      var base = el("div", "kv");
+      say(base, "Baseline",
+        "rank " + (r.baseline_rank === null || r.baseline_rank === undefined ? "n/a" : r.baseline_rank) +
+        ", score " + fmt(r.baseline_score, 1),
+        "no baseline recorded");
+      block.appendChild(base);
+      (r.scenarios || []).forEach(function (s) {
+        var line = el("div", "scenario");
+        line.appendChild(el("span", "sc-name", s.label || s.name || "scenario"));
+        if (s.applicable) {
+          line.appendChild(el("span", "sc-val",
+            "rank " + s.rank + ", score " + fmt(s.score, 1) +
+            (s.delta ? " (" + (s.delta > 0 ? "+" : "") + fmt(s.delta, 1) + ")" : "")));
+        } else {
+          /* An inapplicable scenario is reported as NOT EVALUATED. Omitting it
+             would read as "this assumption did not matter", which is the
+             opposite of what a missing input means. */
+          line.appendChild(el("span", "sc-val not-evaluated", "NOT EVALUATED"));
+          line.appendChild(el("span", "sc-reason",
+            s.reason || "this scenario could not be evaluated for this candidate"));
+        }
+        block.appendChild(line);
+      });
+      if (r.note) block.appendChild(el("div", "ustage-note", r.note));
+      section.appendChild(block);
+    });
+    return section;
+  }
+
+  /* The ablation writer emits one row per ladder rung, each with `status`,
+     `spearman_vs_full` and `agreement.top1_match`. */
+  function renderAblation(part) {
+    var section = el("section", "case-section");
+    section.appendChild(el("h3", null, "Stage ablation"));
+    var study = part || {};
+    if (study.error) {
+      section.appendChild(el("p", "hint", String(study.error)));
+      return section;
+    }
+    if (!Array.isArray(study.ladder) || !study.ladder.length) {
+      section.appendChild(el("p", "hint",
+        "No ablation study was recorded for this case."));
+      return section;
+    }
+    if (study.statement) section.appendChild(el("p", "hint", study.statement));
+    if (study.caveat) section.appendChild(el("p", "hint caveat", study.caveat));
+    var table = el("div", "ladder");
+    study.ladder.forEach(function (r) {
+      var row = el("div", "lrow");
+      row.appendChild(el("span", "lstep", r.step || "?"));
+      row.appendChild(el("span", "llabel", r.label || r.key || "step"));
+      var agreement = r.agreement || {};
+      if (r.status === "computed") {
+        row.appendChild(el("span", "lval",
+          "top-1 " + (agreement.top1_match ? "held" : "changed") +
+          ", rho " + (r.spearman_vs_full === null || r.spearman_vs_full === undefined
+            ? "undefined" : fmt(r.spearman_vs_full, 3))));
+      } else {
+        row.appendChild(el("span", "lval not-evaluated", "NOT EVALUATED"));
+        row.appendChild(el("span", "lreason", r.reason || "this rung was not computed"));
+      }
+      table.appendChild(row);
+    });
+    section.appendChild(table);
+    return section;
+  }
+
+  function renderCalibration(part) {
+    var section = el("section", "case-section");
+    section.appendChild(el("h3", null, "Score calibration"));
+    var report = part || {};
+    if (report.error) {
+      section.appendChild(el("p", "hint", String(report.error)));
+      return section;
+    }
+    if (report.estimable === false) {
+      /* For a single unconfirmed case this is the correct answer rather than a
+         missing feature: a calibration figure needs outcome labels. */
+      section.appendChild(el("p", "hint",
+        report.reason ||
+        "Not estimable from a single case: calibration needs outcome labels, " +
+        "and an unconfirmed scene has none."));
+    } else {
+      var kv = el("div", "kv");
+      say(kv, "Estimable", report.estimable === undefined ? "not reported" : report.estimable);
+      say(kv, "Method", report.method);
+      say(kv, "Brier score", report.brier != null ? fmt(report.brier, 3) : null, "not reported");
+      section.appendChild(kv);
+    }
+    section.appendChild(el("p", "hint caveat",
+      "The investigative score is uncalibrated and is not a probability of " +
+      "discharge."));
+    return section;
+  }
+
+  /* Candidate evidence with the objection beside the supporting reasons. The
+     objection is the part that stops a lead being read as a finding, so it gets
+     a fixed place rather than a row in a leaderboard that gets skimmed for the
+     reasons that agree with it. */
+  function renderCandidates(part) {
+    var section = el("section", "case-section");
+    section.appendChild(el("h3", null, "Candidates"));
+    var rows = (part || {}).candidates;
+    if (!Array.isArray(rows) || !rows.length) {
+      section.appendChild(el("p", "hint",
+        "No vessel passed the spatio-temporal filter. That is an empty result " +
+        "rather than a finding, and no culprit is forced."));
+      return section;
+    }
+    rows.slice(0, 6).forEach(function (c) {
+      var block = el("div", "cand");
+      var head = el("div", "cand-head");
+      head.appendChild(el("span", "cand-name", c.name || c.mmsi || "UNKNOWN"));
+      head.appendChild(el("span", "cand-score",
+        c.score === null || c.score === undefined ? "no score" : fmt(c.score, 1) + "%"));
+      block.appendChild(head);
+      /* The writer groups these as `why_this_vessel` and `why_not` so a reason
+         cannot be paired with the wrong vessel. Read them there. */
+      var why = c.why_this_vessel || {};
+      var not = c.why_not || {};
+      block.appendChild(el("div", "cand-why", "Why this vessel"));
+      var sup = el("ul", "ev-list");
+      (why.supporting || []).forEach(function (item) {
+        sup.appendChild(el("li", null, typeof item === "string" ? item : item.text || String(item)));
+      });
+      if (why.opportunity_note) sup.appendChild(el("li", "note", why.opportunity_note));
+      if (why.evidence_note) sup.appendChild(el("li", "note", why.evidence_note));
+      if (!(why.supporting || []).length) {
+        sup.appendChild(el("li", "absent", "no supporting evidence recorded"));
+      }
+      block.appendChild(sup);
+      block.appendChild(el("div", "cand-why not", "Why not"));
+      var cnt = el("ul", "ev-list");
+      (not.items || []).forEach(function (item) {
+        cnt.appendChild(el("li", null, typeof item === "string" ? item : item.text || String(item)));
+      });
+      if (!(not.items || []).length) {
+        /* An absent objection reads as absence, which is not evidence that
+           none exists. Say so rather than showing an empty list. */
+        cnt.appendChild(el("li", "absent",
+          "No objection was recorded. That is not evidence that none exists."));
+      }
+      block.appendChild(cnt);
+      var dq = el("ul", "ev-list quality");
+      (c.data_quality || []).forEach(function (item) {
+        dq.appendChild(el("li", null, typeof item === "string" ? item : item.text || String(item)));
+      });
+      (c.uncertainty || []).forEach(function (item) {
+        dq.appendChild(el("li", null, typeof item === "string" ? item : item.text || String(item)));
+      });
+      if ((c.data_quality || []).length || (c.uncertainty || []).length) {
+        block.appendChild(el("div", "cand-why", "Data quality and width"));
+        block.appendChild(dq);
+      }
+      section.appendChild(block);
+    });
+    section.appendChild(el("p", "hint caveat",
+      "The investigative score is uncalibrated and is not a probability of " +
+      "discharge. It ranks leads for investigation."));
+    return section;
+  }
+
+  function renderCaseDetail(header, parts) {
+    var box = $("case-detail");
+    if (!box) return;
+    box.innerHTML = "";
+    var quality = (header || {}).case_quality || {};
+    box.appendChild(el("div", "case-title", (header || {}).job_id || "Saved case"));
+    box.appendChild(el("div", "hint",
+      ((header || {}).scene || {}).title || ((header || {}).scene || {}).id || "Unknown scene"));
+
+    /* The band changes how every other number should be read, so it belongs at
+       the top where it is visible in every mode. A band left up from the last
+       case would be worse than never drawing one. */
+    var band = $("case-q");
+    if (band) {
+      band.textContent = "";
+      if (quality.label || quality.overall) {
+        band.appendChild(el("span", "cq-label",
+          "EVIDENCE " + (quality.label || quality.overall)));
+      }
+      band.hidden = !(quality.label || quality.overall);
+    }
+
+    [
+      ["Status", (header || {}).status],
+      ["Evidence quality", quality.label || quality.overall],
+      ["Safe-fail state", (header || {}).safe_fail],
+      ["Oil polygons", ((header || {}).counts || {}).oil_polygons],
+      ["Candidates", ((header || {}).counts || {}).candidates],
+      ["Runtime", (header || {}).total_ms != null ? header.total_ms + " ms" : null]
+    ].forEach(function (row) {
+      if (row[1] === null || row[1] === undefined || row[1] === "") return;
+      var kv = el("div", "kv");
+      kv.appendChild(el("span", "k", row[0]));
+      kv.appendChild(el("span", "v", String(row[1])));
+      box.appendChild(kv);
+    });
+
+    /* `ordered_factors` is only a list of stage keys; the level lives in
+       `factors`. Walking the first without the second renders every row with
+       no level beside it. */
+    var factors = quality.factors || {};
+    if (Array.isArray(quality.ordered_factors) && quality.ordered_factors.length) {
+      var fbox = el("div", "case-section");
+      fbox.appendChild(el("h3", null, "What limited this case"));
+      quality.ordered_factors.forEach(function (key) {
+        var f = factors[key] || {};
+        var row = el("div", "kv");
+        row.appendChild(el("span", "k", key));
+        row.appendChild(el("span", "v",
+          f.level || "level not reported"));
+        fbox.appendChild(row);
+      });
+      box.appendChild(fbox);
+    }
+    (quality.conclusions || []).forEach(function (line) {
+      box.appendChild(el("p", "hint", line));
+    });
+
+    box.appendChild(renderCandidates(parts.evidence));
+    box.appendChild(renderUncertainty(parts.uncertainty));
+    box.appendChild(renderSensitivity(parts.sensitivity));
+    box.appendChild(renderAblation(parts.ablation));
+    box.appendChild(renderCalibration(parts.calibration));
+
+    /* Timeline, chain and the raw evaluation stay available as JSON. They are
+       diagnostics rather than reading surfaces, so they collapse by default. */
+    ["timeline", "chain", "evaluation"].forEach(function (name) {
+      var part = parts[name];
+      var section = el("details", "case-api");
+      section.appendChild(el("summary", "",
+        name.charAt(0).toUpperCase() + name.slice(1)));
+      section.appendChild(el("pre", "api-result",
+        part && !part.error ? prettyResult(part) :
+        (part && part.error) || "Not available for this saved case."));
+      box.appendChild(section);
+    });
+  }
+
+  function loadCase(jobId) {
+    var base = "/api/cases/" + encodeURIComponent(jobId);
+    $("case-detail").innerHTML = "";
+    $("case-detail").appendChild(el("p", "hint", "Loading case evidence."));
+    function optional(path) {
+      return getJSON(path).catch(function (error) { return { error: error.message }; });
+    }
+    Promise.all([
+      getJSON(base), optional(base + "/uncertainty"), optional(base + "/sensitivity"),
+      optional(base + "/ablation"), optional(base + "/calibration"), optional(base + "/evidence"),
+      optional(base + "/timeline"), optional(base + "/chain"), optional("/api/evaluation/attribution/" + encodeURIComponent(jobId))
+    ]).then(function (results) {
+      renderCaseDetail(results[0], { uncertainty: results[1], sensitivity: results[2], ablation: results[3], calibration: results[4], evidence: results[5], timeline: results[6], chain: results[7], evaluation: results[8] });
+    }).catch(function (error) {
+      $("case-detail").innerHTML = "";
+      $("case-detail").appendChild(el("p", "notice bad", "Could not load case: " + error.message));
+    });
+  }
+
+  function loadCases() {
+    return getJSON("/api/cases").then(function (data) {
+      var box = $("case-list");
+      if (!box) return data;
+      box.innerHTML = "";
+      $("case-count").textContent = data.count || 0;
+      (data.cases || []).forEach(function (item) {
+        var button = el("button", "case-row");
+        button.type = "button";
+        button.appendChild(el("span", "nm", item.job_id));
+        button.appendChild(el("span", "dt", utc(item.created).replace(" UTC", "")));
+        button.addEventListener("click", function () {
+          loadCase(item.job_id);
+          getJSON("/api/jobs/" + encodeURIComponent(item.job_id)).then(showJob).catch(function () {});
+        });
+        box.appendChild(button);
+      });
+      if (!(data.cases || []).length) box.appendChild(el("p", "hint", "No saved cases yet."));
+      return data;
+    }).catch(function (error) { $("case-list").textContent = "Could not load cases: " + error.message; });
+  }
+
+  function setOperationTimes() {
+    if (!state.scene || !state.scene.t_sat) return;
+    var end = new Date(state.scene.t_sat), start = new Date(end.getTime() - 3 * 3600e3);
+    function localValue(date) { return date.toISOString().slice(0, 16); }
+    if (!$("op-start").value) $("op-start").value = localValue(start);
+    if (!$("op-end").value) $("op-end").value = localValue(end);
+  }
+
+  function loadDiagnostics() {
+    setOperationTimes();
+    return Promise.all([getJSON("/api/config"), getJSON("/api/metocean"), getJSON("/api/ais/stats")]).then(function (data) {
+      renderOperationResult("Configuration and source diagnostics", { config: data[0], metocean: data[1], ais_stats: data[2] });
+    }).catch(function (error) { renderOperationResult("Diagnostics failed", null, error); });
+  }
+
+  function directDetect() {
+    if (!state.scene) return renderOperationResult("Detection", null, new Error("Choose a scene first."));
+    var threshold = $("op-threshold").value;
+    callOperation("Direct detection", postJSON("/api/detect", {
+      scene_id: state.scene.id, prefer_model: $("op-model").checked,
+      threshold_db: threshold === "" ? null : Number(threshold), render_overlays: true
+    }), function (result) { getJSON("/api/jobs/" + result.job_id).then(showJob).catch(function () {}); });
+  }
+
+  function directDrift() {
+    if (!state.job) return renderOperationResult("Drift", null, new Error("Run or open a case first."));
+    callOperation("Direct drift", postJSON("/api/drift", { job_id: state.job.job_id,
+      hours_back: Number($("hind").value), hours_fwd: Number($("fore").value) }));
+  }
+
+  function directAttribution() {
+    if (!state.job) return renderOperationResult("Attribution", null, new Error("Run or open a case first."));
+    callOperation("Direct attribution", postJSON("/api/attribute", { job_id: state.job.job_id,
+      radius_km: Number($("radius").value), window_h: Number($("window").value), top_n: 10 }));
+  }
+
+  function uploadDetection() {
+    var file = $("op-upload-file").files[0];
+    if (!file) return renderOperationResult("GeoTIFF upload", null, new Error("Choose a GeoTIFF file."));
+    var form = new FormData();
+    form.append("file", file);
+    form.append("prefer_model", String($("op-model").checked));
+    if ($("op-upload-time").value) form.append("t_sat", isoFromInput($("op-upload-time").value));
+    if ($("op-threshold").value) form.append("threshold_db", $("op-threshold").value);
+    callOperation("GeoTIFF detection", fetch("/api/detect/upload", { method: "POST", body: form }).then(function (r) {
+      if (!r.ok) return r.text().then(function (t) { throw new Error(r.status + " " + t.slice(0, 400)); });
+      return r.json();
+    }));
+  }
+
+  function inspectTrack() {
+    var mmsi = $("op-mmsi").value, start = isoFromInput($("op-start").value), end = isoFromInput($("op-end").value);
+    if (!mmsi || !start || !end) return renderOperationResult("AIS track", null, new Error("Enter MMSI, start, and end times."));
+    callOperation("AIS track", getJSON("/api/ais/track/" + encodeURIComponent(mmsi) + "?t_start=" + encodeURIComponent(start) + "&t_end=" + encodeURIComponent(end) + "&step_seconds=" + encodeURIComponent($("op-step").value)));
+  }
+
+  function inspectWindow() {
+    if (!state.scene) return renderOperationResult("AIS window", null, new Error("Choose a scene first."));
+    var start = isoFromInput($("op-start").value), end = isoFromInput($("op-end").value), b = state.scene.bounds;
+    if (!start || !end) return renderOperationResult("AIS window", null, new Error("Enter start and end times."));
+    var qs = "t_start=" + encodeURIComponent(start) + "&t_end=" + encodeURIComponent(end) + "&west=" + b[0] + "&south=" + b[1] + "&east=" + b[2] + "&north=" + b[3] + "&step_seconds=" + encodeURIComponent($("op-step").value);
+    callOperation("AIS scene window", getJSON("/api/ais/window?" + qs));
+  }
+
   function wire() {
     initTheme();
     initRails();
     initNav();
+    initMobileRails();
     $("run").addEventListener("click", runPipeline);
+    $("report-preview").addEventListener("click", function () {
+      if (state.job) window.open("/api/report/" + state.job.job_id, "_blank");
+    });
 
     $("probe").addEventListener("change", function (e) {
       document.getElementById("map").classList.toggle("probing", e.target.checked);
@@ -2753,7 +2557,7 @@
     // Filtering the ranked list is a read, so it applies as you type.
     $("vsearch").addEventListener("input", function () {
       renderVesselList(state.job);
-      if (state.view !== "attribution") showVesselsView();
+      if (state.view !== "vessels") showVesselsView();
     });
     $("slider").addEventListener("input", function (e) {
       stop();
@@ -2775,6 +2579,29 @@
     });
     $("ex-note").addEventListener("click", function () {
       if (state.job) window.open("/api/report/" + state.job.job_id, "_blank");
+    });
+  }
+
+  function initMobileRails() {
+    [["mobile-cases", "case-rail"], ["mobile-context", "context-rail"]].forEach(function (pair) {
+      var button = $(pair[0]), rail = $(pair[1]);
+      if (!button || !rail) return;
+      button.addEventListener("click", function () {
+        var open = rail.classList.toggle("mobile-open");
+        button.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) rail.querySelector("button, input, select, summary").focus();
+      });
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      [["mobile-cases", "case-rail"], ["mobile-context", "context-rail"]].forEach(function (pair) {
+        var rail = $(pair[1]), button = $(pair[0]);
+        if (rail && rail.classList.contains("mobile-open")) {
+          rail.classList.remove("mobile-open");
+          button.setAttribute("aria-expanded", "false");
+          button.focus();
+        }
+      });
     });
   }
 

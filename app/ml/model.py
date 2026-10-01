@@ -42,19 +42,29 @@ def smp_available() -> bool:
 
 
 def device_name() -> str:
-    try:
-        import torch
-
-        return "cuda" if torch.cuda.is_available() else "cpu"
-    except Exception:
-        return "cpu"
+    return "cuda" if cuda_available() else "cpu"
 
 
 def cuda_available() -> bool:
+    """Return whether this torch build can safely execute on the visible GPU.
+
+    ``torch.cuda.is_available()`` alone is not enough on hosted GPUs: a CUDA
+    build can see a device whose compute capability it no longer contains
+    kernels for. Treat that combination as CPU-only so loading a checkpoint
+    remains useful instead of failing on its first forward pass.
+    """
     try:
         import torch
 
-        return bool(torch.cuda.is_available())
+        if not torch.cuda.is_available():
+            return False
+        major, minor = torch.cuda.get_device_capability(0)
+        built_arches = set(torch.cuda.get_arch_list())
+        if built_arches and "sm_%d%d" % (major, minor) not in built_arches:
+            return False
+        # Force CUDA context creation while we can still choose the CPU path.
+        torch.empty(1, device="cuda")
+        return True
     except Exception:
         return False
 
@@ -91,7 +101,15 @@ def load_checkpoint(path: Path = None, map_location: str = None) -> Dict[str, An
     if not path.exists():
         raise FileNotFoundError("checkpoint not found: %s" % path)
     map_location = map_location or device_name()
-    blob = torch.load(str(path), map_location=map_location, weights_only=False)
+    try:
+        blob = torch.load(str(path), map_location=map_location, weights_only=False)
+    except Exception:
+        if map_location != "cuda":
+            raise
+        # A visible CUDA device may still reject allocation or a checkpoint.
+        # The detector remains available on CPU in that situation.
+        map_location = "cpu"
+        blob = torch.load(str(path), map_location=map_location, weights_only=False)
 
     if isinstance(blob, dict) and "state_dict" in blob:
         meta = blob.get("meta", {})
@@ -110,7 +128,13 @@ def load_checkpoint(path: Path = None, map_location: str = None) -> Dict[str, An
         arch, encoder, in_ch, classes = DEFAULT_ARCH, DEFAULT_ENCODER, IN_CHANNELS, N_CLASSES
 
     model.eval()
-    model.to(map_location)
+    try:
+        model.to(map_location)
+    except Exception:
+        if map_location != "cuda":
+            raise
+        map_location = "cpu"
+        model.to(map_location)
     return {
         "model": model,
         "arch": arch,

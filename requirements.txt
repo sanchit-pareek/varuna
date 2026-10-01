@@ -32,8 +32,9 @@ shapely>=2.0
 pillow>=10.0
 requests>=2.31
 
-# ---------------- TRAINING ONLY, NOT ON THE DEMO LAPTOP ----------------
-# Install these on Kaggle. The judged demo must not depend on them.
+# ---------------- ML INFERENCE AND TRAINING, NOT ON THE BASELINE LAPTOP ----------------
+# Install `.[inference]` for local checkpoint inference, or `.[train]` for
+# training. The baseline remains available when these are absent.
 # torch>=2.1
 # segmentation-models-pytorch>=0.3.3
 # albumentations>=1.4

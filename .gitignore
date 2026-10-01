@@ -47,3 +47,17 @@ models/quarantine/*.pt
 p2.docx
 .claude/
 .ruff_cache/
+
+# Test scratch trees. conftest.py points pytest's tmp_path_factory at these so
+# a run never touches the shared system temp directory.
+.pytest_tmp/
+.frontend-test-tmp/
+.ml-test-tmp/
+.unet-test-tmp/
+
+# Truncated fragments from the frontend recovery, kept locally for reference.
+# recovered_app.js is a bare <script> tag; recovered_style.css is a copy of
+# index.html. Neither is valid in its extension and nothing loads them.
+app/static/recovered_app.js
+app/static/recovered_style.css
+app/static/workstation.css
