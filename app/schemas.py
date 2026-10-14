@@ -13,6 +13,7 @@ class HealthResponse(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     ok: bool
+    dev: str
     mode: str = "offline"
     cuda: bool
     model_loaded: bool
