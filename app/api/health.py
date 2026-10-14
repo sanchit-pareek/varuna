@@ -60,7 +60,7 @@ def health() -> HealthResponse:
 
     return HealthResponse(
         ok=True,
-        dev="sanket-singh-sameer"
+        dev="sanket-singh-sameer",
         mode="offline" if config.OFFLINE else "online",
         cuda=bool(status["cuda"]),
         model_loaded=model_loaded,
