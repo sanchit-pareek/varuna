@@ -1,0 +1,58 @@
+
+name: Deploy Python App to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-api-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Ubuntu VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+
+            echo "Starting deployment..."
+
+            cd /var/www/myapp
+
+            echo "Fetching latest code..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "Preparing Python environment..."
+            python3 -m venv .venv
+            source .venv/bin/activate
+            python -m pip install -r requirements.txt
+
+            echo "Restarting FastAPI..."
+            pm2 restart varuna --update-env
+
+            pm2 save
+
+            echo "Checking API..."
+            curl --retry 5 \
+              --retry-connrefused \
+              --retry-delay 2 \
+              --fail \
+              http://127.0.0.1:8000/api/health \
+              -o /dev/null
+
+            echo "Deployment successful!"
+            
